@@ -19,7 +19,6 @@ class Ak(cli.Application):
         logging.info('Verbose mode activated')
 
     def main(self, *args):
-        print "Begin main"
         if args:
             print "Unkown command %r" % (args[0],)
             return 1 #return error
@@ -124,7 +123,6 @@ class AkDb(cli.Application):
 
     def psql(self):
         """Run psql"""
-        print "run psql on ", self.db
         local['psql'] & TEE
 
     def load(self, afile, force):
@@ -137,7 +135,6 @@ class AkDb(cli.Application):
         cmd = psql["-c", ""]
 
         if (cmd & TF): #TF = result of cmd as True or False
-            print "db does exist"
             if force:
                 logging.info('DB already exists. Drop and create it')
                 self.log_and_run(dropdb)
@@ -204,7 +201,6 @@ class AkDb(cli.Application):
         elif (self.infoFlag):
             self.info()
         else:
-            print "default to psql"
             self.psql()
 
 if __name__ == "__main__":
