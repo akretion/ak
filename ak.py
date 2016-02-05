@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import os
 from plumbum import cli, local
 from plumbum.cmd import (cat, ls, test, python, grep, gunzip,
     pg_isready, createdb, psql, dropdb, pg_restore)
@@ -49,9 +50,7 @@ class AkRun(cli.Application):
         else:
             command = 'bin/start_openerp'
 
-        cmd = local[command][params]
-        print cmd
-        cmd & TEE
+        return os.execvpe(command, ['command'], local.env)
 
 
 @Ak.subcommand("build")
@@ -123,7 +122,8 @@ class AkDb(cli.Application):
 
     def psql(self):
         """Run psql"""
-        local['psql'] & TEE
+        import os
+        os.execvpe('psql',['psql'], local.env)
 
     def load(self, afile, force):
         p = local.path(afile)
