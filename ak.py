@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import logging
-import os
+
 from plumbum import cli, local
-from plumbum.cmd import (cat, ls, test, python, grep, gunzip,
+from plumbum.cmd import (test, python, grep, gunzip,
     pg_isready, createdb, psql, dropdb, pg_restore)
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
 import os, ConfigParser
