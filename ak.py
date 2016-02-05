@@ -106,6 +106,7 @@ class AkDb(cli.Application):
 
     waitFlag = cli.Flag(["wait"], help="pg_isready", group="Other")
     infoFlag = cli.Flag(["info"], help="info on db crendentials", group="Other")
+    passFlag = cli.Flag(["admin-password"], help="Change odoo admin password", group="Other")
 
     dbParams = {
      "db_host": "PGHOST",
@@ -184,6 +185,25 @@ class AkDb(cli.Application):
         for ini_key, pg_key in self.dbParams.iteritems():
             print ini_key, local.env.get(pg_key, '')
 
+    def changeAdminPassword(self, args):
+        """Change admin password"""
+
+        newPass = (args or [False])[0]
+
+        if (not newPass): # not provided by cli
+            newPass = cli.terminal.prompt('New admin password ?', str, "admin")
+
+        print "New admin password for %s is : '%s'" % (self.db, newPass)
+
+        code = """session.open(db='%s')"
+user_ids = session.registry('res.users').search(session.cr, 1, [])",
+for user in session.registry('res.users').browse(session.cr, 1, user_ids):",
+    user.write({'password': '%s' })",
+session.cr.commit()
+""" % (self.db, newPass)
+        print local['echo'][code] | local['ak']['console']
+        #TODO: run this command and test it !
+
     def determine_db(self):
         """Extract db parameters from openerp.cfg"""
         # internal func
@@ -216,6 +236,8 @@ class AkDb(cli.Application):
             self.wait()
         elif (self.infoFlag):
             self.info()
+        elif (self.passFlag):
+            self.changeAdminPassword(args)
         else:
             self.psql()
 
