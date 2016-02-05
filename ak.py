@@ -171,13 +171,16 @@ class AkDb(cli.Application):
         """Extract db parameters from openerp.cfg"""
 
         #read ini file
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(OPENRPCFG))
-        for ini_key, pg_key in self.dbParams.iteritems():
-            val = config.get('options', ini_key)
-            if not val == "False":
-                logging.info('Set %s to %s' % (pg_key, val))
-                local.env[pg_key] = val
+        if not local.path(OPENRPCFG).is_file():
+            logging.warn("OPENRPCFG not found")
+        else:
+            config = ConfigParser.ConfigParser()
+            config.readfp(open(OPENRPCFG))
+            for ini_key, pg_key in self.dbParams.iteritems():
+                val = config.get('options', ini_key)
+                if not val == "False":
+                    logging.info('Set %s to %s' % (pg_key, val))
+                    local.env[pg_key] = val
 
         if self.db: #if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
