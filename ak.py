@@ -189,7 +189,7 @@ class AkDb(cli.Application):
     def info(self):
         """Print information from etc/buildout.cfg"""
         for ini_key, pg_key in self.dbParams.iteritems():
-            print ini_key, local.env[pg_key]
+            print ini_key, local.env.get(pg_key, '')
 
 
     def main(self, *args):
