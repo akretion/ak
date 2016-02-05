@@ -126,6 +126,13 @@ class AkDb(cli.Application):
         os.execvpe('psql',['psql'], local.env)
 
     def load(self, afile, force):
+        """Load (restore) a dump from a file
+
+        Will create a database if not exist already
+
+        :param afile: path to dump (can be .gz or .tar)
+        :param foce: db will be dropped before the load
+        """
         p = local.path(afile)
 
         if not p.is_file():
@@ -155,7 +162,12 @@ class AkDb(cli.Application):
 
 
     def dump(self, afile, force):
-        """Dump database to file"""
+        """Dump database to file with pg_dump then gzip
+
+        :param afile: path to dump file
+        :param force: overwrite the file if exists
+
+        """
         #TODO choose format
         p = local.path(afile)
 
@@ -167,8 +179,14 @@ class AkDb(cli.Application):
         """Run pg_isready """
         self.log_and_run(pg_isready)
 
+    def info(self):
+        """Print db informations from etc/buildout.cfg"""
+        for ini_key, pg_key in self.dbParams.iteritems():
+            print ini_key, local.env.get(pg_key, '')
+
     def determine_db(self):
         """Extract db parameters from openerp.cfg"""
+        # internal func
 
         #read ini file
         if not local.path(OPENRPCFG).is_file():
@@ -185,11 +203,6 @@ class AkDb(cli.Application):
         if self.db: #if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
             local.env["PGDATABASE"] = self.db
-
-    def info(self):
-        """Print information from etc/buildout.cfg"""
-        for ini_key, pg_key in self.dbParams.iteritems():
-            print ini_key, local.env.get(pg_key, '')
 
 
     def main(self, *args):
