@@ -39,7 +39,7 @@ class AkRun(cli.Application):
     def main(self, *args):
         params = []
         if self.db:
-            params += ['-d', self.db]
+            params += ['--db-filter=', self.db]
         if self.debugFlag:
             params += ['--debug']
         if self.updateFlag:
