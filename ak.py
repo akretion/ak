@@ -55,6 +55,20 @@ class AkRun(cli.Application):
         return os.execvpe(command, ['command'], local.env)
 
 
+@Ak.subcommand("debug")
+class AkDebug(cli.Application):
+    """Run Odoo in debug mode"""
+
+    def _parse_args(self, argv):
+        argv_full = ['--'] + argv
+        if '--debug' not in argv:
+            argv_full.append('--debug')
+        return super(AkDebug, self)._parse_args(argv_full)
+
+    def main(self, *args):
+        command = ['/bin/echo'] + list(args)
+        return os.execvpe(command[0], command, local.env)
+
 @Ak.subcommand("build")
 class AkBuild(cli.Application):
     "Build dependencies for odoo."
