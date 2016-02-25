@@ -188,7 +188,7 @@ class AkDb(cli.Application):
 
         # set cron to inactive
         # TODO give a flag for that
-        self.log_and_run(psql["-c", "UPDATE ir_cron SET active=False;"])
+        self.log_and_run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
     def dump(self, afile, force):
         """Dump database to file with pg_dump then gzip.
