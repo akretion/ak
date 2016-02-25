@@ -19,6 +19,24 @@ class Ak(cli.Application):
     PROGNAME = "ak"
     VERSION = "1.0"
 
+    dryrunFlag = cli.Flag(["dry-run"], help="Dry run mode")
+
+    def log_and_run(self, cmd, retcode=FG):
+        """Log cmd before exec."""
+        logging.info(cmd)
+        if (self.dryrunFlag):
+            print cmd
+            return True
+        return cmd & RETCODE
+
+    def log_and_exec(self, cmd, args=[], env=None):
+        """Log cmd and execve."""
+        logging.info([cmd, args])
+        if (self.dryrunFlag):
+            print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
+            return True
+        os.execvpe(cmd, [cmd] + args, env)
+
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
         logging.root.setLevel(logging.INFO)
@@ -46,7 +64,7 @@ class AkRun(cli.Application):
     def main(self, *args):
         params = []
         if self.db:
-            params += ['--db-filter=', self.db]
+            params += ['--db-filter', self.db]
         if self.debugFlag:
             params += ['--debug']
         if self.updateFlag:
@@ -57,7 +75,7 @@ class AkRun(cli.Application):
         else:
             command = 'bin/start_openerp'
 
-        return os.execvpe(command, ['command'], local.env)
+        return self.parent.log_and_exec(command, params, local.env)
 
 
 @Ak.subcommand("build")
@@ -106,6 +124,7 @@ class AkDb(cli.Application):
 
     Run without args to get a psql prompt
     Credentials are extracted from etc/openerp.cfg
+
     """
 
     db = cli.SwitchAttr(["-d"], str, help="Database")
@@ -117,7 +136,6 @@ class AkDb(cli.Application):
                         help="Export a dump")
     path = cli.SwitchAttr(["path", "p"], str, group="IO",
                           help="Path to a file dump")
-
     waitFlag = cli.Flag(["wait"], group="Other",
                         help="pg_isready")
     infoFlag = cli.Flag(["info"], group="Other",
@@ -133,14 +151,9 @@ class AkDb(cli.Application):
         "db_password": "PGPASSWORD"
     }
 
-    def log_and_run(self, cmd):
-        logging.info(cmd)
-        cmd & FG
-
     def psql(self):
         """Run psql."""
-        import os
-        os.execvpe('psql', ['psql'], local.env)
+        self.log_and_exec('psql', [], local.env)
 
     def load(self, afile, force):
         """Load (restore) a dump from a file.
@@ -158,7 +171,7 @@ class AkDb(cli.Application):
         # check if db exists
         cmd = psql["-c", ""]
 
-        if (cmd & TF):  # TF = result of cmd as True or False
+        if (self.log_and_run(cmd, TF)):  # TF = result of cmd as True or False
             if force:
                 logging.info('DB already exists. Drop and create it')
                 self.log_and_run(dropdb)
@@ -241,6 +254,11 @@ session.cr.commit()
             local.env["PGDATABASE"] = self.db
 
     def main(self, *args):
+
+        #  bind functions with AK
+        self.log_and_run = self.parent.log_and_run
+        self.log_and_exec = self.parent.log_and_exec
+
         self.determine_db()  # get credentials
 
         if (self.loadFlag):
