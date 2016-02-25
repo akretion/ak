@@ -10,6 +10,7 @@ import os, ConfigParser
 BUILDOUT_URL = 'https://raw.github.com/buildout/buildout/master/bootstrap/bootstrap.py'
 OPENRPCFG = 'etc/openerp.cfg'
 
+
 class Ak(cli.Application):
     PROGNAME = "ak"
     VERSION = "1.0"
@@ -22,7 +23,7 @@ class Ak(cli.Application):
     def main(self, *args):
         if args:
             print "Unkown command %r" % (args[0],)
-            return 1 #return error
+            return 1  # return error
         if not self.nested_command:
             print "No command given"
             return 1
@@ -30,7 +31,8 @@ class Ak(cli.Application):
 
 @Ak.subcommand("run")
 class AkRun(cli.Application):
-    """Start openerp"""
+    """Start openerp."""
+
     db = cli.SwitchAttr(["d"], str, help="Database")
     debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
     consoleFlag = cli.Flag(['console'], help="Console mode")
@@ -55,7 +57,7 @@ class AkRun(cli.Application):
 
 @Ak.subcommand("build")
 class AkBuild(cli.Application):
-    "Build dependencies for odoo"
+    "Build dependencies for odoo."
 
     freezeFlag = cli.Flag(["freeze"], help="Freeze dependencies to frozen.cfg")
     configFlag = cli.SwitchAttr(["c","config"],default=OPENRPCFG, help="Config flag")
@@ -116,7 +118,8 @@ class AkDb(cli.Application):
      "db_password": "PGPASSWORD"
     }
 
-    def log_and_run(self, cmd):
+    def log_and_run(self, cmd, retcode=FG):
+        """Log cmd before exec."""
         logging.info(cmd)
         cmd & FG
 
@@ -127,7 +130,7 @@ class AkDb(cli.Application):
         os.execvpe('psql',['psql'], local.env)
 
     def load(self, afile, force):
-        """Load (restore) a dump from a file
+        """Load (restore) a dump from a file.
 
         Will create a database if not exist already
 
@@ -139,7 +142,7 @@ class AkDb(cli.Application):
         if not p.is_file():
             raise Exception("input file not found")
 
-        #check if db exists
+        # check if db exists
         cmd = psql["-c", ""]
 
         if (cmd & TF): #TF = result of cmd as True or False
@@ -157,19 +160,17 @@ class AkDb(cli.Application):
         else:
             self.log_and_run(pg_restore["-O", p])
 
-        #set cron to inactive
-        #TODO give a flag for that
-        self.log_and_run(psql["-c", "UPDATE ir_cron SET active=False;"])
-
+        # set cron to inactive
+        # TODO give a flag for that
+        self.log_and_run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
     def dump(self, afile, force):
-        """Dump database to file with pg_dump then gzip
+        """Dump database to file with pg_dump then gzip.
 
         :param afile: path to dump file
         :param force: overwrite the file if exists
-
         """
-        #TODO choose format
+        #  TODO choose format
         p = local.path(afile)
 
         if p.is_file() and not force:
@@ -177,38 +178,39 @@ class AkDb(cli.Application):
         self.log_and_run(local['pg_dump'] | local['gzip'] > afile)
 
     def wait(self):
-        """Run pg_isready """
+        """Run pg_isready."""
         self.log_and_run(pg_isready)
 
     def info(self):
-        """Print db informations from etc/buildout.cfg"""
+        """Print db informations from etc/buildout.cfg."""
         for ini_key, pg_key in self.dbParams.iteritems():
             print ini_key, local.env.get(pg_key, '')
 
     def changeAdminPassword(self, args):
-        """Change admin password"""
+        """Change admin password."""
 
-        newPass = (args or [False])[0]
+        new_pass = (args or [False])[0]
 
-        if (not newPass): # not provided by cli
-            newPass = cli.terminal.prompt('New admin password ?', str, "admin")
+        if (not new_pass):  # not provided by cli
+            new_pass = cli.terminal.prompt(
+                'New admin password ?', str, "admin")
 
-        print "New admin password for %s is : '%s'" % (self.db, newPass)
+        print "New admin password for %s is : '%s'" % (self.db, new_pass)
 
         code = """session.open(db='%s')"
 user_ids = session.registry('res.users').search(session.cr, 1, [])",
 for user in session.registry('res.users').browse(session.cr, 1, user_ids):",
     user.write({'password': '%s' })",
 session.cr.commit()
-""" % (self.db, newPass)
+""" % (self.db, new_pass)
         print local['echo'][code] | local['ak']['console']
-        #TODO: run this command and test it !
+        # TODO: run this command and test it !
 
     def determine_db(self):
-        """Extract db parameters from openerp.cfg"""
+        """Extract db parameters from openerp.cfg."""
         # internal func
 
-        #read ini file
+        # read ini file
         if not local.path(OPENRPCFG).is_file():
             logging.warn("OPENRPCFG not found")
         else:
@@ -220,13 +222,13 @@ session.cr.commit()
                     logging.info('Set %s to %s' % (pg_key, val))
                     local.env[pg_key] = val
 
-        if self.db: #if db is forced by flag
+        if self.db:  # if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
             local.env["PGDATABASE"] = self.db
 
 
     def main(self, *args):
-        self.determine_db() #get credentials
+        self.determine_db()  # get credentials
 
         if (self.loadFlag):
             self.load(self.path, self.force)
