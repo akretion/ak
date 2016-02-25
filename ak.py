@@ -20,7 +20,14 @@ class Ak(cli.Application):
     VERSION = "1.0"
 
     dryrunFlag = cli.Flag(["dry-run"], help="Dry run mode")
-
+    db = False
+    dbParams = {
+        "db_host": "PGHOST",
+        "db_port": "PGPORT",
+        "db_name": "PGDATABASE",
+        "db_user": "PGUSER",
+        "db_password": "PGPASSWORD"
+    }
     def log_and_run(self, cmd, retcode=FG):
         """Log cmd before exec."""
         logging.info(cmd)
@@ -36,6 +43,26 @@ class Ak(cli.Application):
             print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
             return True
         os.execvpe(cmd, [cmd] + args, env)
+
+    def determine_db(self):
+        """Extract db parameters from openerp.cfg."""
+        # internal func
+
+        # read ini file
+        if not local.path(OPENRPCFG).is_file():
+            logging.warn("OPENRPCFG not found")
+        else:
+            config = ConfigParser.ConfigParser()
+            config.readfp(open(OPENRPCFG))
+            for ini_key, pg_key in self.dbParams.iteritems():
+                val = config.get('options', ini_key)
+                if not val == "False":
+                    logging.info('Set %s to %s' % (pg_key, val))
+                    local.env[pg_key] = val
+
+        if self.db:  # if db is forced by flag
+            logging.info("PGDATABASE overwitten by %s", self.db)
+            local.env["PGDATABASE"] = self.db
 
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
@@ -60,6 +87,10 @@ class AkRun(cli.Application):
     consoleFlag = cli.Flag(['console'], help="Console mode")
     updateFlag = cli.SwitchAttr(
         ["u", "update"], list=True, help="Update module")
+    
+    def _parse_args(self, argv):
+        argv_full = ['--'] + argv
+        return super(AkRun, self)._parse_args(argv_full)
 
     def main(self, *args):
         params = []
@@ -74,7 +105,84 @@ class AkRun(cli.Application):
             command = 'bin/python_openerp'
         else:
             command = 'bin/start_openerp'
+        params += list(args)
+        return self.parent.log_and_exec(command, params, local.env)
 
+
+@Ak.subcommand("init")
+class AkInit(cli.Application):
+    """Init odoo."""
+
+    db = cli.SwitchAttr(["-d"], str, help="Database")
+    modules = cli.SwitchAttr(["-i"], str, help="Modules")
+    force = cli.Flag('force', help="Force", group="IO")
+    demo = cli.Flag('demo', help="Init with demo data", group="IO")
+
+    def _parse_args(self, argv):
+        argv_full = ['--'] + argv
+        return super(AkInit, self)._parse_args(argv_full)
+
+    def main(self, *args):
+        #  bind functions with AK
+        self.log_and_run = self.parent.log_and_run
+        self.log_and_exec = self.parent.log_and_exec        
+        params = []
+        if self.db:
+            params += ['-d', self.db]
+                # check if db exists
+        cmd = psql["-c", ""]
+
+        if (self.log_and_run(cmd, TF)):  # TF = result of cmd as True or False
+            if self.force:
+                logging.info('DB already exists. Drop and create it')
+                self.log_and_run(dropdb)
+                self.log_and_run(createdb)
+
+        else:
+            logging.info('DB does ont exists. Create it')
+            self.log_and_run(createdb)
+        if self.modules:
+            params += ['-i', str.join(',', self.modules)]
+        else:
+             params += ['-i', 'base']
+        # params += ['--without-demo', self.demo]
+        command = 'bin/start_openerp'
+        params += list(args)
+        return self.parent.log_and_exec(command, params, local.env)
+
+
+@Ak.subcommand("debug")
+class AkDebug(cli.Application):
+    """Run Odoo in debug mode"""
+
+    def _parse_args(self, argv):
+        argv_full = ['--'] + argv
+        if '--debug' not in argv:
+            argv_full.append('--debug')
+        return super(AkDebug, self)._parse_args(argv_full)
+
+    def main(self, *args):
+        command = 'bin/start_openerp'
+        params = list(args)
+        return self.parent.log_and_exec(command, params, local.env)
+
+
+@Ak.subcommand("upgrade")
+class AkUpgrade(cli.Application):
+    """Upgrade openerp."""
+
+    db = cli.SwitchAttr(["d"], str, help="Database")
+
+    def _parse_args(self, argv):
+        argv_full = ['--'] + argv
+        return super(AkUpgrade, self)._parse_args(argv_full)
+
+    def main(self, *args):
+        params = []
+        params += ['-d', self.db or "db"]
+
+        command = 'bin/upgrade_openerp'
+        params += list(args)
         return self.parent.log_and_exec(command, params, local.env)
 
 
