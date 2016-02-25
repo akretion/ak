@@ -2,12 +2,14 @@
 import logging
 
 from plumbum import cli, local
-from plumbum.cmd import (test, python, grep, gunzip,
-    pg_isready, createdb, psql, dropdb, pg_restore)
+from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
+                         createdb, psql, dropdb, pg_restore)
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
-import os, ConfigParser
+import os
+import ConfigParser
 
-BUILDOUT_URL = 'https://raw.github.com/buildout/buildout/master/bootstrap/bootstrap.py'
+BUILDOUT_URL = ('https://raw.github.com/buildout/'
+                'buildout/master/bootstrap/bootstrap.py')
 OPENRPCFG = 'etc/openerp.cfg'
 
 
@@ -31,12 +33,12 @@ class Ak(cli.Application):
 
 @Ak.subcommand("run")
 class AkRun(cli.Application):
-    """Start openerp."""
-
+    """Start openerp"""
     db = cli.SwitchAttr(["d"], str, help="Database")
     debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
     consoleFlag = cli.Flag(['console'], help="Console mode")
-    updateFlag = cli.SwitchAttr(["u", "update"], list=True, help="Update module")
+    updateFlag = cli.SwitchAttr(
+        ["u", "update"], list=True, help="Update module")
 
     def main(self, *args):
         params = []
@@ -45,7 +47,7 @@ class AkRun(cli.Application):
         if self.debugFlag:
             params += ['--debug']
         if self.updateFlag:
-            params += ['-u', str.join(',',self.updateFlag)]
+            params += ['-u', str.join(',', self.updateFlag)]
 
         if self.consoleFlag:
             command = 'bin/python_openerp'
@@ -57,10 +59,12 @@ class AkRun(cli.Application):
 
 @Ak.subcommand("build")
 class AkBuild(cli.Application):
-    "Build dependencies for odoo."
+    "Build dependencies for odoo"
 
-    freezeFlag = cli.Flag(["freeze"], help="Freeze dependencies to frozen.cfg")
-    configFlag = cli.SwitchAttr(["c","config"],default=OPENRPCFG, help="Config flag")
+    freezeFlag = cli.Flag(
+        ["freeze"], help="Freeze dependencies to frozen.cfg")
+    configFlag = cli.SwitchAttr(
+        ["c", "config"], default=OPENRPCFG, help="Config flag")
 
     def freeze(self):
         cmd = local['bin/buildout']['-o', 'openerp:freeze-to=frozen.cfg']
@@ -102,13 +106,19 @@ class AkDb(cli.Application):
     db = cli.SwitchAttr(["-d"], str, help="Database")
     force = cli.Flag('--force', help="Force", group="IO")
 
-    loadFlag = cli.Flag(["load"], help="Load a dump", group="IO")
-    dumpFlag = cli.Flag(["dump"], help="Export a dump", group="IO", requires=['p'])
-    path = cli.SwitchAttr(["path","p"], str, help="Path to a file dump", group="IO")
+    loadFlag = cli.Flag(["load"], group="IO",
+                        help="Load a dump")
+    dumpFlag = cli.Flag(["dump"], group="IO", requires=['p'],
+                        help="Export a dump")
+    path = cli.SwitchAttr(["path", "p"], str, group="IO",
+                          help="Path to a file dump")
 
-    waitFlag = cli.Flag(["wait"], help="pg_isready", group="Other")
-    infoFlag = cli.Flag(["info"], help="info on db crendentials", group="Other")
-    passFlag = cli.Flag(["admin-password"], help="Change odoo admin password", group="Other")
+    waitFlag = cli.Flag(["wait"], group="Other",
+                        help="pg_isready")
+    infoFlag = cli.Flag(["info"], group="Other",
+                        help="info on db crendentials")
+    passFlag = cli.Flag(["admin-password"], group="Other",
+                        help="Change odoo admin password")
 
     dbParams = {
      "db_host": "PGHOST",
@@ -118,19 +128,17 @@ class AkDb(cli.Application):
      "db_password": "PGPASSWORD"
     }
 
-    def log_and_run(self, cmd, retcode=FG):
-        """Log cmd before exec."""
+    def log_and_run(self, cmd):
         logging.info(cmd)
         cmd & FG
-
 
     def psql(self):
         """Run psql"""
         import os
-        os.execvpe('psql',['psql'], local.env)
+        os.execvpe('psql', ['psql'], local.env)
 
     def load(self, afile, force):
-        """Load (restore) a dump from a file.
+        """Load (restore) a dump from a file
 
         Will create a database if not exist already
 
@@ -145,7 +153,7 @@ class AkDb(cli.Application):
         # check if db exists
         cmd = psql["-c", ""]
 
-        if (cmd & TF): #TF = result of cmd as True or False
+        if (cmd & TF):  # TF = result of cmd as True or False
             if force:
                 logging.info('DB already exists. Drop and create it')
                 self.log_and_run(dropdb)
@@ -162,15 +170,16 @@ class AkDb(cli.Application):
 
         # set cron to inactive
         # TODO give a flag for that
-        self.log_and_run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
+        self.log_and_run(psql["-c", "UPDATE ir_cron SET active=False;"])
 
     def dump(self, afile, force):
-        """Dump database to file with pg_dump then gzip.
+        """Dump database to file with pg_dump then gzip
 
         :param afile: path to dump file
         :param force: overwrite the file if exists
+
         """
-        #  TODO choose format
+        # TODO choose format
         p = local.path(afile)
 
         if p.is_file() and not force:
@@ -178,36 +187,35 @@ class AkDb(cli.Application):
         self.log_and_run(local['pg_dump'] | local['gzip'] > afile)
 
     def wait(self):
-        """Run pg_isready."""
+        """Run pg_isready """
         self.log_and_run(pg_isready)
 
     def info(self):
-        """Print db informations from etc/buildout.cfg."""
+        """Print db informations from etc/buildout.cfg"""
         for ini_key, pg_key in self.dbParams.iteritems():
             print ini_key, local.env.get(pg_key, '')
 
     def changeAdminPassword(self, args):
-        """Change admin password."""
+        """Change admin password"""
 
-        new_pass = (args or [False])[0]
+        newPass = (args or [False])[0]
 
-        if (not new_pass):  # not provided by cli
-            new_pass = cli.terminal.prompt(
-                'New admin password ?', str, "admin")
+        if (not newPass):  # not provided by cli
+            newPass = cli.terminal.prompt('New admin password ?', str, "admin")
 
-        print "New admin password for %s is : '%s'" % (self.db, new_pass)
+        print "New admin password for %s is : '%s'" % (self.db, newPass)
 
         code = """session.open(db='%s')"
 user_ids = session.registry('res.users').search(session.cr, 1, [])",
 for user in session.registry('res.users').browse(session.cr, 1, user_ids):",
     user.write({'password': '%s' })",
 session.cr.commit()
-""" % (self.db, new_pass)
+""" % (self.db, newPass)
         print local['echo'][code] | local['ak']['console']
         # TODO: run this command and test it !
 
     def determine_db(self):
-        """Extract db parameters from openerp.cfg."""
+        """Extract db parameters from openerp.cfg"""
         # internal func
 
         # read ini file
@@ -225,7 +233,6 @@ session.cr.commit()
         if self.db:  # if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
             local.env["PGDATABASE"] = self.db
-
 
     def main(self, *args):
         self.determine_db()  # get credentials
