@@ -1,19 +1,44 @@
 #!/usr/bin/env python
+# coding: utf-8
+"""AK."""
 import logging
 
 from plumbum import cli, local
-from plumbum.cmd import (test, python, grep, gunzip,
-    pg_isready, createdb, psql, dropdb, pg_restore)
+from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
+                         createdb, psql, dropdb, pg_restore)
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
-import os, ConfigParser
+import os
+import ConfigParser
 
-BUILDOUT_URL = 'https://raw.github.com/buildout/buildout/master/bootstrap/bootstrap.py'
-OPENRPCFG = 'etc/openerp.cfg'
+BUILDOUT_URL = ('https://raw.github.com/buildout/'
+                'buildout/master/bootstrap/bootstrap.py')
+ERP_CFG = 'etc/openerp.cfg'
+DEV_BUILD = "buildout.dev.cfg"
+PROD_BUILD = "buildout.prod.cfg"
+WORKSPACE = '/workspace/'
 
 
 class Ak(cli.Application):
     PROGNAME = "ak"
     VERSION = "1.0"
+
+    dryrunFlag = cli.Flag(["dry-run"], help="Dry run mode")
+
+    def log_and_run(self, cmd, retcode=FG):
+        """Log cmd before exec."""
+        logging.info(cmd)
+        if (self.dryrunFlag):
+            print cmd
+            return True
+        return cmd & RETCODE
+
+    def log_and_exec(self, cmd, args=[], env=None):
+        """Log cmd and execve."""
+        logging.info([cmd, args])
+        if (self.dryrunFlag):
+            print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
+            return True
+        os.execvpe(cmd, [cmd] + args, env)
 
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
@@ -36,41 +61,59 @@ class AkRun(cli.Application):
     db = cli.SwitchAttr(["d"], str, help="Database")
     debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
     consoleFlag = cli.Flag(['console'], help="Console mode")
-    updateFlag = cli.SwitchAttr(["u", "update"], list=True, help="Update module")
+    updateFlag = cli.SwitchAttr(
+        ["u", "update"], list=True, help="Update module")
 
     def main(self, *args):
         params = []
         if self.db:
-            params += ['--db-filter=', self.db]
+            params += ['--db-filter', self.db]
         if self.debugFlag:
             params += ['--debug']
         if self.updateFlag:
-            params += ['-u', str.join(',',self.updateFlag)]
+            params += ['-u', str.join(',', self.updateFlag)]
 
         if self.consoleFlag:
             command = 'bin/python_openerp'
         else:
             command = 'bin/start_openerp'
 
-        return os.execvpe(command, ['command'], local.env)
+        return self.parent.log_and_exec(command, params, local.env)
 
 
 @Ak.subcommand("build")
 class AkBuild(cli.Application):
-    "Build dependencies for odoo."
+    "Build dependencies for odoo"
 
-    freezeFlag = cli.Flag(["freeze"], help="Freeze dependencies to frozen.cfg")
-    configFlag = cli.SwitchAttr(["c","config"],default=OPENRPCFG, help="Config flag")
+    freezeFlag = cli.Flag(
+        ["freeze"], help="Freeze dependencies to frozen.cfg")
+    offlineFlag = cli.Flag(
+        ["o"], help="Build with only local available source (merges, etc)")
+    configFlag = cli.SwitchAttr(
+        ["c", "config"], help="Config flag")
 
     def freeze(self):
         cmd = local['bin/buildout']['-o', 'openerp:freeze-to=frozen.cfg']
         print cmd
 
     def build(self):
-        cmd = local['bin/buildout']['-c', configFlag]
+        params = []
+        if not self.configFlag:
+            if os.path.isfile(WORKSPACE + PROD_BUILD):
+                self.configFlag = WORKSPACE + PROD_BUILD
+            elif os.path.isfile(WORKSPACE + DEV_BUILD):
+                self.configFlag = WORKSPACE + DEV_BUILD
+            else:
+                # TODO replace with an adhoc exception
+                raise Exception("Missing buildout config file")
+        if self.offlineFlag:
+            params.append('-o')
+        # how to add params for optionnal args ???
+        cmd = local['bin/buildout']['-c', self.configFlag]
         print cmd
 
     def main(self, *args):
+        self.build()
         True
 
 # TODO: is it really ak's job to install buildout ? why not pgsql also ?
@@ -95,39 +138,40 @@ class AkBuild(cli.Application):
 
 @Ak.subcommand("db")
 class AkDb(cli.Application):
-    """Db tools
+    """Db tools.
+
     Run without args to get a psql prompt
     Credentials are extracted from etc/openerp.cfg
+
     """
+
     db = cli.SwitchAttr(["-d"], str, help="Database")
     force = cli.Flag('--force', help="Force", group="IO")
 
-    loadFlag = cli.Flag(["load"], help="Load a dump", group="IO")
-    dumpFlag = cli.Flag(["dump"], help="Export a dump", group="IO", requires=['p'])
-    path = cli.SwitchAttr(["path","p"], str, help="Path to a file dump", group="IO")
-
-    waitFlag = cli.Flag(["wait"], help="pg_isready", group="Other")
-    infoFlag = cli.Flag(["info"], help="info on db crendentials", group="Other")
-    passFlag = cli.Flag(["admin-password"], help="Change odoo admin password", group="Other")
+    loadFlag = cli.Flag(["load"], group="IO",
+                        help="Load a dump")
+    dumpFlag = cli.Flag(["dump"], group="IO", requires=['p'],
+                        help="Export a dump")
+    path = cli.SwitchAttr(["path", "p"], str, group="IO",
+                          help="Path to a file dump")
+    waitFlag = cli.Flag(["wait"], group="Other",
+                        help="pg_isready")
+    infoFlag = cli.Flag(["info"], group="Other",
+                        help="info on db crendentials")
+    passFlag = cli.Flag(["admin-password"], group="Other",
+                        help="Change odoo admin password")
 
     dbParams = {
-     "db_host": "PGHOST",
-     "db_port": "PGPORT",
-     "db_name": "PGDATABASE",
-     "db_user": "PGUSER",
-     "db_password": "PGPASSWORD"
+        "db_host": "PGHOST",
+        "db_port": "PGPORT",
+        "db_name": "PGDATABASE",
+        "db_user": "PGUSER",
+        "db_password": "PGPASSWORD"
     }
 
-    def log_and_run(self, cmd, retcode=FG):
-        """Log cmd before exec."""
-        logging.info(cmd)
-        cmd & FG
-
-
     def psql(self):
-        """Run psql"""
-        import os
-        os.execvpe('psql',['psql'], local.env)
+        """Run psql."""
+        self.log_and_exec('psql', [], local.env)
 
     def load(self, afile, force):
         """Load (restore) a dump from a file.
@@ -145,7 +189,7 @@ class AkDb(cli.Application):
         # check if db exists
         cmd = psql["-c", ""]
 
-        if (cmd & TF): #TF = result of cmd as True or False
+        if (self.log_and_run(cmd, TF)):  # TF = result of cmd as True or False
             if force:
                 logging.info('DB already exists. Drop and create it')
                 self.log_and_run(dropdb)
@@ -169,8 +213,9 @@ class AkDb(cli.Application):
 
         :param afile: path to dump file
         :param force: overwrite the file if exists
+
         """
-        #  TODO choose format
+        # TODO choose format
         p = local.path(afile)
 
         if p.is_file() and not force:
@@ -211,11 +256,11 @@ session.cr.commit()
         # internal func
 
         # read ini file
-        if not local.path(OPENRPCFG).is_file():
-            logging.warn("OPENRPCFG not found")
+        if not local.path(ERP_CFG).is_file():
+            logging.warn("%s not found" % ERP_CFG)
         else:
             config = ConfigParser.ConfigParser()
-            config.readfp(open(OPENRPCFG))
+            config.readfp(open(ERP_CFG))
             for ini_key, pg_key in self.dbParams.iteritems():
                 val = config.get('options', ini_key)
                 if not val == "False":
@@ -226,8 +271,12 @@ session.cr.commit()
             logging.info("PGDATABASE overwitten by %s", self.db)
             local.env["PGDATABASE"] = self.db
 
-
     def main(self, *args):
+
+        #  bind functions with AK
+        self.log_and_run = self.parent.log_and_run
+        self.log_and_exec = self.parent.log_and_exec
+
         self.determine_db()  # get credentials
 
         if (self.loadFlag):
