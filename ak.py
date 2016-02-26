@@ -287,8 +287,9 @@ session.cr.commit()
 
 @Ak.subcommand("pitr")
 class AkPitr(cli.Application):
-    """PostgreSQL PITR
-        Only available in voodoo (http://akretion.github.io/voodoo/)
+    """
+       PostgreSQL PITR.
+       Only available in voodoo (http://akretion.github.io/voodoo/)
     """
 
     pitr_dir = ".db_backups"
@@ -324,7 +325,8 @@ class AkPitr(cli.Application):
         pitr_list_path = os.path.join(self.pitr_dir, self.pitr_list)
 
         if not os.path.isfile(pitr_list_path):
-            logging.error("pitr list file not found, please run pitr backup first.")
+            logging.error(
+                "pitr list file not found, please run pitr backup first.")
             return
 
         with open(pitr_list_path, "r") as f:
@@ -340,7 +342,8 @@ class AkPitr(cli.Application):
                     pitr = pitrs[choice-1]
                     target_time, temp = pitr.split(' ', 1)
                     validation = raw_input(
-                        "delete databases and restore from backup %i (%s) (y/n)?" %
+                        "delete databases and restore "
+                        "from backup %i (%s) (y/n)?" %
                         (choice, pitr)
                     )
                     if validation == "y":
@@ -349,7 +352,8 @@ class AkPitr(cli.Application):
                             shutil.rmtree(self.postgresql_data)
                         pitrery["restore", "-d", target_time]()
                         sv["start", self.postgresql_sv]()
-                        print "waiting for Postgresql embedded server to start..."
+                        print "waiting for Postgresql "\
+                              "embedded server to start..."
                         try:
                             while not pg_isready & TF:
                                 time.sleep(1)
@@ -358,7 +362,8 @@ class AkPitr(cli.Application):
                 else:
                     logging.error("invalid choice")
         else:
-            logging.error("pitr list file not found, please run pitr backup first.")
+            logging.error("pitr list file not found, "
+                          "please run pitr backup first.")
 
     def purge(self):
         validation = raw_input("purge all existing pitr files (y/n)?")
@@ -372,8 +377,8 @@ class AkPitr(cli.Application):
 
         if not pitrery_enable:
             logging.error(
-                "Command not supported: missing dependencies (pitrery, runit). "
-                "Please run it in voodoo environment"
+                "Missing dependencies (pitrery, runit). "
+                "Please run this command in voodoo environment"
             )
             return
 
