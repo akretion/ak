@@ -14,9 +14,9 @@ from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
 
 try:
     from plumbum.cmd import (pitrery, sv)
-    pitrery_enable = True
+    voodoo_enable = True
 except ImportError:
-    pitrery_enable = False
+    voodoo_enable = False
 
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
 
@@ -375,7 +375,7 @@ class AkPitr(cli.Application):
 
     def main(self, *args):
 
-        if not pitrery_enable:
+        if not voodoo_enable:
             logging.error(
                 "Missing dependencies (pitrery, runit). "
                 "Please run this command in voodoo environment"
