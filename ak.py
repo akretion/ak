@@ -2,13 +2,22 @@
 # coding: utf-8
 """AK."""
 import logging
+import os
+import ConfigParser
+import time
+import shutil
+from datetime import datetime
 
 from plumbum import cli, local
 from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
                          createdb, psql, dropdb, pg_restore)
+
+try:
+    from plumbum.cmd import (pitrery, sv)
+except ImportError:
+    pass
+
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
-import os
-import ConfigParser
 
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
@@ -273,6 +282,107 @@ session.cr.commit()
             self.changeAdminPassword(args)
         else:
             self.psql()
+
+
+@Ak.subcommand("pitr")
+class AkPitr(cli.Application):
+    """PostgreSQL PITR
+        Only available in voodoo (http://akretion.github.io/voodoo/)
+    """
+
+    pitr_dir = ".db_backups"
+    pitr_list = "pitr_list"
+    postgresql_data = "/workspace/.db"
+    postgresql_sv = "/etc/devstep/service/postgresql"
+
+    backupFlag = cli.Flag(["backup"], help="Make a pitr backup")
+    listFlag = cli.Flag(["list"], help="List all pitr backups")
+    restoreFlag = cli.Flag(["restore"],
+                           help="Restore a pitr backup: ak pitr restore",
+                           requires=["choice"])
+    purgeFlag = cli.Flag(["purge"], help="purge all pitr files")
+    label = cli.SwitchAttr(["label", "l"], str, help="PITR label",
+                           group="Other")
+    choice = cli.SwitchAttr(["choice", "c"], int, help="PITR choice",
+                            group="Other")
+
+    def backup(self, label):
+        pitr_list_path = os.path.join(self.pitr_dir, self.pitr_list)
+        if not os.path.isfile(pitr_list_path):
+            if os.path.isdir(self.pitr_dir):
+                shutil.rmtree(self.pitr_dir)
+            os.makedirs(self.pitr_dir)
+
+        pitrery["backup"]()
+
+        date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        with open(pitr_list_path, "a") as f:
+            f.write("%s UTC label: %s\n" % (date, label))
+
+    def list(self):
+        pitr_list_path = os.path.join(self.pitr_dir, self.pitr_list)
+
+        if not os.path.isfile(pitr_list_path):
+            logging.error("pitr list file not found, please run pitr backup first.")
+            return
+
+        with open(pitr_list_path, "r") as f:
+            for i, pitr in enumerate(f.readlines(), 1):
+                print "%i) %s" % (i, pitr.strip())
+
+    def restore(self, choice):
+        pitr_list_path = os.path.join(self.pitr_dir, self.pitr_list)
+        if os.path.isfile(pitr_list_path):
+            with open(pitr_list_path, 'r') as f:
+                pitrs = f.read().split('\n')
+                if 1 <= choice <= len(pitrs):
+                    pitr = pitrs[choice-1]
+                    target_time, temp = pitr.split(' ', 1)
+                    validation = raw_input(
+                        "delete databases and restore from backup %i (%s) (y/n)?" %
+                        (choice, pitr)
+                    )
+                    if validation == "y":
+                        sv["stop", self.postgresql_sv]
+                        if os.path.isdir(self.postgresql_data):
+                            shutil.rmtree(self.postgresql_data)
+                        pitrery["restore", "-d", target_time]()
+                        sv["start", self.postgresql_sv]()
+                        print "waiting for Postgresql embedded server to start..."
+                        try:
+                            while not pg_isready & TF:
+                                time.sleep(1)
+                        except KeyboardInterrupt:
+                            pass
+                else:
+                    logging.error("invalid choice")
+        else:
+            logging.error("pitr list file not found, please run pitr backup first.")
+
+    def purge(self):
+        validation = raw_input("purge all existing pitr files (y/n)?")
+        if validation == "y":
+            if os.path.isdir(self.pitr_dir):
+                shutil.rmtree(self.pitr_dir)
+        else:
+            logging.info("canceled")
+
+    def main(self, *args):
+
+        self.log_and_run = self.parent.log_and_run
+        self.log_and_exec = self.parent.log_and_exec
+
+        if self.backupFlag:
+            self.backup(self.label)
+        elif self.listFlag:
+            self.list()
+        elif self.restoreFlag:
+            self.restore(self.choice)
+        elif self.purgeFlag:
+            self.purge()
+        else:
+            logging.error("invalid arguments")
+
 
 if __name__ == "__main__":
     Ak.run()
