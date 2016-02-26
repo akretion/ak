@@ -14,8 +14,9 @@ from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
 
 try:
     from plumbum.cmd import (pitrery, sv)
+    pitrery_enable = True
 except ImportError:
-    pass
+    pitrery_enable = False
 
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
 
@@ -343,7 +344,7 @@ class AkPitr(cli.Application):
                         (choice, pitr)
                     )
                     if validation == "y":
-                        sv["stop", self.postgresql_sv]
+                        sv["stop", self.postgresql_sv]()
                         if os.path.isdir(self.postgresql_data):
                             shutil.rmtree(self.postgresql_data)
                         pitrery["restore", "-d", target_time]()
@@ -368,6 +369,13 @@ class AkPitr(cli.Application):
             logging.info("canceled")
 
     def main(self, *args):
+
+        if not pitrery_enable:
+            logging.error(
+                "Command not supported: missing dependencies (pitrery, runit). "
+                "Please run it in voodoo environment"
+            )
+            return
 
         self.log_and_run = self.parent.log_and_run
         self.log_and_exec = self.parent.log_and_exec
