@@ -12,7 +12,10 @@ import ConfigParser
 
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
-OPENRPCFG = 'etc/openerp.cfg'
+ERP_CFG = 'etc/openerp.cfg'
+DEV_BUILD = "buildout.dev.cfg"
+PROD_BUILD = "buildout.prod.cfg"
+WORKSPACE = '/workspace/'
 
 
 class Ak(cli.Application):
@@ -84,18 +87,33 @@ class AkBuild(cli.Application):
 
     freezeFlag = cli.Flag(
         ["freeze"], help="Freeze dependencies to frozen.cfg")
+    offlineFlag = cli.Flag(
+        ["o"], help="Build with only local available source (merges, etc)")
     configFlag = cli.SwitchAttr(
-        ["c", "config"], default=OPENRPCFG, help="Config flag")
+        ["c", "config"], help="Config flag")
 
     def freeze(self):
         cmd = local['bin/buildout']['-o', 'openerp:freeze-to=frozen.cfg']
         print cmd
 
     def build(self):
-        cmd = local['bin/buildout']['-c', configFlag]
+        params = []
+        if not self.configFlag:
+            if os.path.isfile(WORKSPACE + PROD_BUILD):
+                self.configFlag = WORKSPACE + PROD_BUILD
+            elif os.path.isfile(WORKSPACE + DEV_BUILD):
+                self.configFlag = WORKSPACE + DEV_BUILD
+            else:
+                # TODO replace with an adhoc exception
+                raise Exception("Missing buildout config file")
+        if self.offlineFlag:
+            params.append('-o')
+        # how to add params for optionnal args ???
+        cmd = local['bin/buildout']['-c', self.configFlag]
         print cmd
 
     def main(self, *args):
+        self.build()
         True
 
 # TODO: is it really ak's job to install buildout ? why not pgsql also ?
@@ -238,11 +256,11 @@ session.cr.commit()
         # internal func
 
         # read ini file
-        if not local.path(OPENRPCFG).is_file():
-            logging.warn("OPENRPCFG not found")
+        if not local.path(ERP_CFG).is_file():
+            logging.warn("%s not found" % ERP_CFG)
         else:
             config = ConfigParser.ConfigParser()
-            config.readfp(open(OPENRPCFG))
+            config.readfp(open(ERP_CFG))
             for ini_key, pg_key in self.dbParams.iteritems():
                 val = config.get('options', ini_key)
                 if not val == "False":
