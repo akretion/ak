@@ -5,7 +5,7 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
-                         createdb, psql, dropdb, pg_restore)
+                         createdb, psql, dropdb, pg_restore, git)
 from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
 import os
 import ConfigParser
@@ -16,6 +16,8 @@ ERP_CFG = 'etc/openerp.cfg'
 DEV_BUILD = "buildout.dev.cfg"
 PROD_BUILD = "buildout.prod.cfg"
 WORKSPACE = '/workspace/'
+MODULE_FOLDER = WORKSPACE + 'parts/'
+
 
 
 class Ak(cli.Application):
@@ -295,6 +297,25 @@ session.cr.commit()
         else:
             self.psql()
 
+
+@Ak.subcommand("git-diff")
+class AkGitDiff(cli.Application):
+    """Git diff tools.
+        Scan all Odoo module repositories, based on addons_path in the
+        erp config file.
+        For each repository, return launch a git diff command.
+    """
+    def main(self, *args):
+        config = self.parent.read_erp_config_file()
+        paths = config.get('options', 'addons_path').split(',')
+        for path in paths:
+            # Skip voodoo folder (module path) and do not consider double paths
+            # for odoo
+            if path.startswith(MODULE_FOLDER) and not\
+                    path.endswith('openerp/addons'):
+                print ("\n\n~~~ Scanning folder %s" % path).ljust(100, '~')
+                with local.cwd(path):
+                    self.parent.log_and_run(git['status'])
 
 
 if __name__ == "__main__":
