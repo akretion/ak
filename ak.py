@@ -4,9 +4,9 @@
 import logging
 
 from plumbum import cli, local
-from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
-                         createdb, psql, dropdb, pg_restore)
-from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
+from plumbum.cmd import (
+    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git)
+from plumbum.commands.modifiers import FG, TF
 import os
 import ConfigParser
 
@@ -16,6 +16,7 @@ ERP_CFG = 'etc/openerp.cfg'
 DEV_BUILD = "buildout.dev.cfg"
 PROD_BUILD = "buildout.prod.cfg"
 WORKSPACE = '/workspace/'
+MODULE_FOLDER = WORKSPACE + 'parts/'
 
 
 class Ak(cli.Application):
@@ -39,6 +40,13 @@ class Ak(cli.Application):
             print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
             return True
         os.execvpe(cmd, [cmd] + args, env)
+
+    def read_erp_config_file(self):
+        if not local.path(ERP_CFG).is_file():
+            raise Exception("Missing ERP config file %s" % ERP_CFG)
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(ERP_CFG))
+        return config
 
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
@@ -256,16 +264,12 @@ session.cr.commit()
         # internal func
 
         # read ini file
-        if not local.path(ERP_CFG).is_file():
-            logging.warn("%s not found" % ERP_CFG)
-        else:
-            config = ConfigParser.ConfigParser()
-            config.readfp(open(ERP_CFG))
-            for ini_key, pg_key in self.dbParams.iteritems():
-                val = config.get('options', ini_key)
-                if not val == "False":
-                    logging.info('Set %s to %s' % (pg_key, val))
-                    local.env[pg_key] = val
+        config = self.parent.read_erp_config_file()
+        for ini_key, pg_key in self.dbParams.iteritems():
+            val = config.get('options', ini_key)
+            if not val == "False":
+                logging.info('Set %s to %s' % (pg_key, val))
+                local.env[pg_key] = val
 
         if self.db:  # if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
@@ -291,6 +295,30 @@ session.cr.commit()
             self.changeAdminPassword(args)
         else:
             self.psql()
+
+
+@Ak.subcommand("git-diff")
+class AkGitDiff(cli.Application):
+    """Git diff tools.
+        Scan all Odoo module repositories, based on addons_path in the
+        erp config file.
+        For each repository, return launch a git diff command.
+    """
+    def main(self, *args):
+        config = self.parent.read_erp_config_file()
+        paths = config.get('options', 'addons_path').split(',')
+        for path in paths:
+            # Skip voodoo folder (module path) and do not consider double paths
+            # for odoo
+            if path.startswith(MODULE_FOLDER) and not\
+                    path.endswith('openerp/addons'):
+                print "\n"
+                print "".ljust(100, '~')
+                print ("~~~ Scanning folder %s" % path).ljust(100, '~')
+                print "".ljust(100, '~')
+                with local.cwd(path):
+                    self.parent.log_and_run(git['status'])
+
 
 if __name__ == "__main__":
     Ak.run()
