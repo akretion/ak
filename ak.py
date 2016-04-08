@@ -312,7 +312,10 @@ class AkGitDiff(cli.Application):
             # for odoo
             if path.startswith(MODULE_FOLDER) and not\
                     path.endswith('openerp/addons'):
-                print ("\n\n~~~ Scanning folder %s" % path).ljust(100, '~')
+                print "\n"
+                print "".ljust(100, '~')
+                print ("~~~ Scanning folder %s" % path).ljust(100, '~')
+                print "".ljust(100, '~')
                 with local.cwd(path):
                     self.parent.log_and_run(git['status'])
 
