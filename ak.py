@@ -30,7 +30,7 @@ class Ak(cli.Application):
         if (self.dryrunFlag):
             print cmd
             return True
-        return cmd & RETCODE
+        return cmd & retcode
 
     def log_and_exec(self, cmd, args=[], env=None):
         """Log cmd and execve."""
