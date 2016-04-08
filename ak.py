@@ -40,6 +40,13 @@ class Ak(cli.Application):
             return True
         os.execvpe(cmd, [cmd] + args, env)
 
+    def read_erp_config_file(self):
+        if not local.path(ERP_CFG).is_file():
+            raise Exception("Missing ERP config file %s" % ERP_CFG)
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(ERP_CFG))
+        return config
+
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
         logging.root.setLevel(logging.INFO)
@@ -256,16 +263,12 @@ session.cr.commit()
         # internal func
 
         # read ini file
-        if not local.path(ERP_CFG).is_file():
-            logging.warn("%s not found" % ERP_CFG)
-        else:
-            config = ConfigParser.ConfigParser()
-            config.readfp(open(ERP_CFG))
-            for ini_key, pg_key in self.dbParams.iteritems():
-                val = config.get('options', ini_key)
-                if not val == "False":
-                    logging.info('Set %s to %s' % (pg_key, val))
-                    local.env[pg_key] = val
+        config = self.parent.read_erp_config_file()
+        for ini_key, pg_key in self.dbParams.iteritems():
+            val = config.get('options', ini_key)
+            if not val == "False":
+                logging.info('Set %s to %s' % (pg_key, val))
+                local.env[pg_key] = val
 
         if self.db:  # if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
@@ -291,6 +294,8 @@ session.cr.commit()
             self.changeAdminPassword(args)
         else:
             self.psql()
+
+
 
 if __name__ == "__main__":
     Ak.run()
