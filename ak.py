@@ -4,9 +4,9 @@
 import logging
 
 from plumbum import cli, local
-from plumbum.cmd import (test, python, grep, gunzip, pg_isready,
-                         createdb, psql, dropdb, pg_restore, git)
-from plumbum.commands.modifiers import RETCODE, FG, TEE, TF
+from plumbum.cmd import (
+    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git)
+from plumbum.commands.modifiers import FG, TF
 import os
 import ConfigParser
 
@@ -17,7 +17,6 @@ DEV_BUILD = "buildout.dev.cfg"
 PROD_BUILD = "buildout.prod.cfg"
 WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
-
 
 
 class Ak(cli.Application):
