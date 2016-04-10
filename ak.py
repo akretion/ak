@@ -297,12 +297,13 @@ session.cr.commit()
             self.psql()
 
 
-@Ak.subcommand("git-diff")
-class AkGitDiff(cli.Application):
-    """Git diff tools.
+@Ak.subcommand("diff")
+class AkDiff(cli.Application):
+    """Diff tools.
         Scan all Odoo module repositories, based on addons_path in the
         erp config file.
-        For each repository, return launch a git diff command.
+        For each repository, launch a diff command.
+        For the time being, only git is implemented.
     """
     def main(self, *args):
         config = self.parent.read_erp_config_file()
