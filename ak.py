@@ -253,7 +253,7 @@ class AkDb(cli.Application, DbTools):
         if p.suffix == '.gz':
             self.log_and_run(gunzip['-c', p] | psql)
         else:
-            self.log_and_run(pg_restore["-O", p])
+            self.log_and_run(pg_restore["-O", p, '-d', self.db])
 
         # set cron to inactive
         # TODO give a flag for that
@@ -308,7 +308,7 @@ session.cr.commit()
         self.log_and_run = self.parent.log_and_run
         self.log_and_exec = self.parent.log_and_exec
 
-        self.determine_db()  # get credentials
+        self.db = self.determine_db()  # get credentials
 
         if (self.loadFlag):
             self.load(self.path, self.force)
