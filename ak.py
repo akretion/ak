@@ -128,6 +128,19 @@ class AkRun(cli.Application, DbTools):
         return self.parent.log_and_exec(command, params, local.env)
 
 
+@Ak.subcommand("upgrade")
+class AkUpgrade(cli.Application, DbTools):
+    """Upgrade odoo."""
+
+    def main(self, *args):
+        db = self.determine_db()
+        params = []
+        params += ['-d', db]
+        command = 'bin/upgrade_openerp'
+
+        return self.parent.log_and_exec(command, params, local.env)
+
+
 @Ak.subcommand("build")
 class AkBuild(cli.Application):
     "Build dependencies for odoo"
