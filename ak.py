@@ -19,6 +19,45 @@ WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
 
 
+class DbTools(object):
+    """Read db credentials from ERP_CFG.
+
+    Add -d flag to the current command to override PGDATABASE
+    Add self.db
+
+    Usage:
+      Heritate from this class and call determine_db()
+
+        class AkSomething(cli.Application, DbTools):
+            def main(self):
+                self.determine_db()
+                # your stuff here
+    """
+
+    dbParams = {
+        "db_host": "PGHOST",
+        "db_port": "PGPORT",
+        "db_name": "PGDATABASE",
+        "db_user": "PGUSER",
+        "db_password": "PGPASSWORD"
+    }
+    db = cli.SwitchAttr(["d"], str, help="Database")
+
+    def determine_db(self):
+        """Extract db parameters from ERP_CFG."""
+        config = self.parent.read_erp_config_file()
+        for ini_key, pg_key in self.dbParams.iteritems():
+            val = config.get('options', ini_key)
+            if not val == "False":
+                logging.info('Set %s to %s' % (pg_key, val))
+                local.env[pg_key] = val
+
+        if self.db:  # if db is forced by flag
+            logging.info("PGDATABASE overwitten by %s", self.db)
+            local.env["PGDATABASE"] = self.db
+        return local.env["PGDATABASE"]
+
+
 class Ak(cli.Application):
     PROGNAME = "ak"
     VERSION = "1.0"
@@ -63,16 +102,16 @@ class Ak(cli.Application):
 
 
 @Ak.subcommand("run")
-class AkRun(cli.Application):
+class AkRun(cli.Application, DbTools):
     """Start openerp."""
 
-    db = cli.SwitchAttr(["d"], str, help="Database")
     debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
     consoleFlag = cli.Flag(['console'], help="Console mode")
     updateFlag = cli.SwitchAttr(
         ["u", "update"], list=True, help="Update module")
 
     def main(self, *args):
+        self.determine_db()
         params = []
         if self.db:
             params += ['--db-filter', self.db]
@@ -145,7 +184,7 @@ class AkBuild(cli.Application):
 
 
 @Ak.subcommand("db")
-class AkDb(cli.Application):
+class AkDb(cli.Application, DbTools):
     """Db tools.
 
     Run without args to get a psql prompt
@@ -153,7 +192,6 @@ class AkDb(cli.Application):
 
     """
 
-    db = cli.SwitchAttr(["-d"], str, help="Database")
     force = cli.Flag('--force', help="Force", group="IO")
 
     loadFlag = cli.Flag(["load"], group="IO",
@@ -168,14 +206,6 @@ class AkDb(cli.Application):
                         help="info on db crendentials")
     passFlag = cli.Flag(["admin-password"], group="Other",
                         help="Change odoo admin password")
-
-    dbParams = {
-        "db_host": "PGHOST",
-        "db_port": "PGPORT",
-        "db_name": "PGDATABASE",
-        "db_user": "PGUSER",
-        "db_password": "PGPASSWORD"
-    }
 
     def psql(self):
         """Run psql."""
@@ -258,22 +288,6 @@ session.cr.commit()
 """ % (self.db, new_pass)
         print local['echo'][code] | local['ak']['console']
         # TODO: run this command and test it !
-
-    def determine_db(self):
-        """Extract db parameters from openerp.cfg."""
-        # internal func
-
-        # read ini file
-        config = self.parent.read_erp_config_file()
-        for ini_key, pg_key in self.dbParams.iteritems():
-            val = config.get('options', ini_key)
-            if not val == "False":
-                logging.info('Set %s to %s' % (pg_key, val))
-                local.env[pg_key] = val
-
-        if self.db:  # if db is forced by flag
-            logging.info("PGDATABASE overwitten by %s", self.db)
-            local.env["PGDATABASE"] = self.db
 
     def main(self, *args):
 
