@@ -5,7 +5,7 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git)
+    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python)
 from plumbum.commands.modifiers import FG, TF
 import os
 import ConfigParser
@@ -64,7 +64,7 @@ class Ak(cli.Application):
 
     dryrunFlag = cli.Flag(["dry-run"], help="Dry run mode")
 
-    def log_and_run(self, cmd, retcode=FG):
+    def _exec(self, cmd, retcode=FG):
         """Log cmd before exec."""
         logging.info(cmd)
         if (self.dryrunFlag):
@@ -99,6 +99,11 @@ class Ak(cli.Application):
         if not self.nested_command:
             print "No command given"
             return 1
+
+class AkSub(cli.Application):
+
+    def _exec(self, *args, **kwargs):
+        self.parent._exec(*args, **kwargs)
 
 
 @Ak.subcommand("run")
@@ -141,23 +146,13 @@ class AkUpgrade(cli.Application, DbTools):
         return self.parent.log_and_exec(command, params, local.env)
 
 
-@Ak.subcommand("build")
-class AkBuild(cli.Application):
-    "Build dependencies for odoo"
+class AkBuildFreeze(AkSub):
 
-    freezeFlag = cli.Flag(
-        ["freeze"], help="Freeze dependencies to frozen.cfg")
-    offlineFlag = cli.Flag(
-        ["o"], help="Build with only local available source (merges, etc)")
     configFlag = cli.SwitchAttr(
         ["c", "config"], help="Config flag")
 
-    def freeze(self):
-        cmd = local['bin/buildout']['-o', 'openerp:freeze-to=frozen.cfg']
-        print cmd
-
-    def build(self):
-        params = []
+    def __init__(self, *args, **kwargs):
+        super(AkBuildFreeze, self).__init__(*args, **kwargs)
         if not self.configFlag:
             if os.path.isfile(WORKSPACE + PROD_BUILD):
                 self.configFlag = WORKSPACE + PROD_BUILD
@@ -166,34 +161,38 @@ class AkBuild(cli.Application):
             else:
                 # TODO replace with an adhoc exception
                 raise Exception("Missing buildout config file")
-        if self.offlineFlag:
-            params.append('-o')
-        # how to add params for optionnal args ???
-        cmd = local['bin/buildout']['-c', self.configFlag]
-        print cmd
+
+@Ak.subcommand("build")
+class AkBuild(AkBuildFreeze):
+    "Build dependencies for odoo"
+
+    offlineFlag = cli.Flag(
+        ["o"], help="Build with only local available source (merges, etc)")
+
+    def download_and_install(self):
+        logging.info('Will download buildout from %s' % BUILDOUT_URL)
+        wget = local['wget']
+        cmd = wget[BUILDOUT_URL]
+        cmd()
+        python('bootstrap.py')
+        os.remove('bootstrap.py')
 
     def main(self, *args):
-        self.build()
-        True
+        if not os.path.exists('bin/buildout'):
+            self.download_and_install()
+        params = ['-c', self.configFlag]
+        if self.offlineFlag:
+            params.append('-o')
+        self._exec(local['bin/buildout'].__getitem__(params))
 
-# TODO: is it really ak's job to install buildout ? why not pgsql also ?
-#        if not self.is_installed():
-#            if cli.terminal.ask(
-#                "Buildout not found. Download it ?", default="Y"):
-#                self.download_and_install()
-#            else:
-#                raise Exception("Can't continue without buildout")
-#
-#
-#    def is_installed(self):
-#        logging.info('Will check if buildout is installed')
-#        return (test["-f", 'bin/buildosut'] & RETCODE)
-#
-#    def download_and_install(self):
-#        logging.info('Will download buildout from %s' % BUILDOUT_URL)
-#        wget = local['wget']
-#        cmd = wget["BUILDOUT_URL", "-O -"] | python
-#        print "c bon"
+
+@Ak.subcommand("freeze")
+class AkFreeze(AkBuildFreeze):
+    "Freeze dependencies for odoo"
+
+    def main(self):
+        self._exec(local['bin/buildout'][
+            '-c', self.configFlag, '-o', 'openerp:freeze-to=frozen.cfg'])
 
 
 @Ak.subcommand("db")
@@ -348,5 +347,5 @@ class AkDiff(cli.Application):
                     self.parent.log_and_run(git['status'])
 
 
-if __name__ == "__main__":
+def main():
     Ak.run()
