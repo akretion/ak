@@ -62,12 +62,12 @@ class Ak(cli.Application):
     PROGNAME = "ak"
     VERSION = "1.0"
 
-    dryrunFlag = cli.Flag(["dry-run"], help="Dry run mode")
+    dryrun = cli.Flag(["dry-run"], help="Dry run mode")
 
     def _exec(self, cmd, retcode=FG):
         """Log cmd before exec."""
         logging.info(cmd)
-        if (self.dryrunFlag):
+        if (self.dryrun):
             print cmd
             return True
         return cmd & retcode
@@ -75,7 +75,7 @@ class Ak(cli.Application):
     def log_and_exec(self, cmd, args=[], env=None):
         """Log cmd and execve."""
         logging.info([cmd, args])
-        if (self.dryrunFlag):
+        if (self.dryrun):
             print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
             return True
         os.execvpe(cmd, [cmd] + args, env)
@@ -110,24 +110,24 @@ class AkSub(cli.Application):
 class AkRun(AkSub):
     """Start openerp."""
 
-    debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
-    consoleFlag = cli.Flag(['console'], help="Console mode")
-    updateFlag = cli.SwitchAttr(
+    debug = cli.Flag(["D", "debug"], help="Debug mode")
+    console = cli.Flag(['console'], help="Console mode")
+    update = cli.SwitchAttr(
         ["u", "update"], list=True, help="Update module")
-    dbFlag = cli.SwitchAttr(
+    db = cli.SwitchAttr(
         ["d"], help="Force Database")
 
     def main(self, *args):
-        if self.consoleFlag:
+        if self.console:
             cmd = local['bin/python_openerp']
         else:
             params = []
-            if self.dbFlag:
+            if self.db:
                 params += ['--db-filter', self.db]
-            if self.debugFlag:
+            if self.debug:
                 params += ['--debug']
-            if self.updateFlag:
-                params += ['-u', str.join(',', self.updateFlag)]
+            if self.update:
+                params += ['-u', str.join(',', self.update)]
             cmd = local['bin/start_openerp'].__getitem__(params)
         return self._exec(cmd)
 
@@ -136,28 +136,28 @@ class AkRun(AkSub):
 class AkUpgrade(AkSub):
     """Upgrade odoo."""
 
-    dbFlag = cli.SwitchAttr(
+    db = cli.SwitchAttr(
         ["d"], help="Force Database")
 
     def main(self, *args):
         cmd = local['bin/upgrade_openerp']
-        if self.dbFlag:
-            cmd = cmd['-d', 'self.dbFlag']
+        if self.db:
+            cmd = cmd['-d', self.db]
         return self._exec(cmd)
 
 
 class AkBuildFreeze(AkSub):
 
-    configFlag = cli.SwitchAttr(
+    config = cli.SwitchAttr(
         ["c", "config"], help="Config flag")
 
     def __init__(self, *args, **kwargs):
         super(AkBuildFreeze, self).__init__(*args, **kwargs)
-        if not self.configFlag:
+        if not self.config:
             if os.path.isfile(WORKSPACE + PROD_BUILD):
-                self.configFlag = WORKSPACE + PROD_BUILD
+                self.config = WORKSPACE + PROD_BUILD
             elif os.path.isfile(WORKSPACE + DEV_BUILD):
-                self.configFlag = WORKSPACE + DEV_BUILD
+                self.config = WORKSPACE + DEV_BUILD
             else:
                 # TODO replace with an adhoc exception
                 raise Exception("Missing buildout config file")
@@ -166,7 +166,7 @@ class AkBuildFreeze(AkSub):
 class AkBuild(AkBuildFreeze):
     "Build dependencies for odoo"
 
-    offlineFlag = cli.Flag(
+    offline = cli.Flag(
         ["o"], help="Build with only local available source (merges, etc)")
 
     def download_and_install(self):
@@ -180,8 +180,8 @@ class AkBuild(AkBuildFreeze):
     def main(self, *args):
         if not os.path.exists('bin/buildout'):
             self.download_and_install()
-        params = ['-c', self.configFlag]
-        if self.offlineFlag:
+        params = ['-c', self.config]
+        if self.offline:
             params.append('-o')
         self._exec(local['bin/buildout'].__getitem__(params))
 
@@ -192,7 +192,7 @@ class AkFreeze(AkBuildFreeze):
 
     def main(self):
         self._exec(local['bin/buildout'][
-            '-c', self.configFlag, '-o', 'openerp:freeze-to=frozen.cfg'])
+            '-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
 
 
 @Ak.subcommand("db")
