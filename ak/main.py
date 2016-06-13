@@ -19,44 +19,6 @@ WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
 
 
-class DbTools(object):
-    """Read db credentials from ERP_CFG.
-
-    Add -d flag to the current command to override PGDATABASE
-    Add self.db
-
-    Usage:
-      Heritate from this class and call determine_db()
-
-        class AkSomething(cli.Application, DbTools):
-            def main(self):
-                self.determine_db()
-                # your stuff here
-    """
-
-    dbParams = {
-        "db_host": "PGHOST",
-        "db_port": "PGPORT",
-        "db_name": "PGDATABASE",
-        "db_user": "PGUSER",
-        "db_password": "PGPASSWORD"
-    }
-    db = cli.SwitchAttr(["d"], str, help="Database")
-
-    def determine_db(self):
-        """Extract db parameters from ERP_CFG."""
-        config = self.parent.read_erp_config_file()
-        for ini_key, pg_key in self.dbParams.iteritems():
-            val = config.get('options', ini_key)
-            if not val == "False":
-                logging.info('Set %s to %s' % (pg_key, val))
-                local.env[pg_key] = val
-
-        if self.db:  # if db is forced by flag
-            logging.info("PGDATABASE overwitten by %s", self.db)
-            local.env["PGDATABASE"] = self.db
-        return local.env["PGDATABASE"]
-
 
 class Ak(cli.Application):
     PROGNAME = "ak"
@@ -103,7 +65,7 @@ class Ak(cli.Application):
 class AkSub(cli.Application):
 
     def _exec(self, *args, **kwargs):
-        self.parent._exec(*args, **kwargs)
+        return self.parent._exec(*args, **kwargs)
 
 
 @Ak.subcommand("run")
@@ -195,8 +157,93 @@ class AkFreeze(AkBuildFreeze):
             '-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
 
 
+class AkSubDb(AkSub):
+    """Read db credentials from ERP_CFG.
+
+    Add -d flag to the current command to override PGDATABASE
+    Add self.db
+
+    Usage:
+      Heritate from this class and call determine_db()
+
+        class AkSomething(cli.Application, DbTools):
+            def main(self):
+                self.set_db()
+                # your stuff here
+                print self.db
+    """
+
+    dbParams = {
+        "db_host": "PGHOST",
+        "db_port": "PGPORT",
+        "db_name": "PGDATABASE",
+        "db_user": "PGUSER",
+        "db_password": "PGPASSWORD"
+    }
+
+    db = cli.SwitchAttr(["d"], str, help="Database")
+
+    def __init__(self, executable):
+        super(AkSubDb, self).__init__(executable)
+        """Extract db parameters from ERP_CFG."""
+        config = self.parent.read_erp_config_file()
+        for ini_key, pg_key in self.dbParams.iteritems():
+            val = config.get('options', ini_key)
+            if not val == "False":
+                logging.info('Set %s to %s' % (pg_key, val))
+                local.env[pg_key] = val
+
+        if self.db:  # if db is forced by flag
+            logging.info("PGDATABASE overwitten by %s", self.db)
+            local.env["PGDATABASE"] = self.db
+        else:
+            self.db = local.env["PGDATABASE"]
+
+
+@Ak.subcommand("db:load")
+class AkDbLoad(AkSubDb):
+
+    force = cli.Flag('--force', help="Force", group="IO")
+
+    def main(self, dump_file):
+        """Load (restore) a dump from a file.
+
+        Will create a database if not exist already
+
+        :param dump_file: path to dump (can be .gz or .tar)
+        :param foce: db will be dropped before the load
+        """
+        p = local.path(dump_file)
+
+        if not p.is_file():
+            raise Exception("input file not found")
+
+        # check if db exists
+        cmd = psql["-c", ""]
+        if (self._exec(cmd, TF)):  # TF = result of cmd as True or False
+            if self.force:
+                logging.info('DB already exists. Drop and create it')
+                self._exec(dropdb[self.db])
+                self._exec(createdb[self.db])
+            else:
+                print "DB already exist, use --force to force loading"
+                return
+        else:
+            logging.info('DB does ont exists. Create it')
+            self._exec(createdb)
+
+        if p.suffix == '.gz':
+            self._exec(gunzip['-c', p] | psql)
+        else:
+            self._exec(pg_restore["-O", p, '-d', self.db])
+
+        # set cron to inactive
+        # TODO give a flag for that
+        self._exec(psql["-c", "'UPDATE ir_cron SET active=False;'"])
+
+
 @Ak.subcommand("db")
-class AkDb(cli.Application, DbTools):
+class AkDb(AkSubDb):
     """Db tools.
 
     Run without args to get a psql prompt
@@ -204,14 +251,10 @@ class AkDb(cli.Application, DbTools):
 
     """
 
-    force = cli.Flag('--force', help="Force", group="IO")
-
     loadFlag = cli.Flag(["load"], group="IO",
                         help="Load a dump")
     dumpFlag = cli.Flag(["dump"], group="IO", requires=['p'],
                         help="Export a dump")
-    path = cli.SwitchAttr(["path", "p"], str, group="IO",
-                          help="Path to a file dump")
     waitFlag = cli.Flag(["wait"], group="Other",
                         help="pg_isready")
     infoFlag = cli.Flag(["info"], group="Other",
@@ -223,40 +266,6 @@ class AkDb(cli.Application, DbTools):
         """Run psql."""
         self.log_and_exec('psql', [], local.env)
 
-    def load(self, afile, force):
-        """Load (restore) a dump from a file.
-
-        Will create a database if not exist already
-
-        :param afile: path to dump (can be .gz or .tar)
-        :param foce: db will be dropped before the load
-        """
-        p = local.path(afile)
-
-        if not p.is_file():
-            raise Exception("input file not found")
-
-        # check if db exists
-        cmd = psql["-c", ""]
-
-        if (self.log_and_run(cmd, TF)):  # TF = result of cmd as True or False
-            if force:
-                logging.info('DB already exists. Drop and create it')
-                self.log_and_run(dropdb)
-                self.log_and_run(createdb)
-
-        else:
-            logging.info('DB does ont exists. Create it')
-            self.log_and_run(createdb)
-
-        if p.suffix == '.gz':
-            self.log_and_run(gunzip['-c', p] | psql)
-        else:
-            self.log_and_run(pg_restore["-O", p, '-d', self.db])
-
-        # set cron to inactive
-        # TODO give a flag for that
-        self.log_and_run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
     def dump(self, afile, force):
         """Dump database to file with pg_dump then gzip.
