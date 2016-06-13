@@ -107,43 +107,43 @@ class AkSub(cli.Application):
 
 
 @Ak.subcommand("run")
-class AkRun(cli.Application, DbTools):
+class AkRun(AkSub):
     """Start openerp."""
 
     debugFlag = cli.Flag(["D", "debug"], help="Debug mode")
     consoleFlag = cli.Flag(['console'], help="Console mode")
     updateFlag = cli.SwitchAttr(
         ["u", "update"], list=True, help="Update module")
+    dbFlag = cli.SwitchAttr(
+        ["d"], help="Force Database")
 
     def main(self, *args):
-        self.determine_db()
-        params = []
-        if self.db:
-            params += ['--db-filter', self.db]
-        if self.debugFlag:
-            params += ['--debug']
-        if self.updateFlag:
-            params += ['-u', str.join(',', self.updateFlag)]
-
         if self.consoleFlag:
-            command = 'bin/python_openerp'
+            cmd = local['bin/python_openerp']
         else:
-            command = 'bin/start_openerp'
-
-        return self.parent.log_and_exec(command, params, local.env)
+            params = []
+            if self.dbFlag:
+                params += ['--db-filter', self.db]
+            if self.debugFlag:
+                params += ['--debug']
+            if self.updateFlag:
+                params += ['-u', str.join(',', self.updateFlag)]
+            cmd = local['bin/start_openerp'].__getitem__(params)
+        return self._exec(cmd)
 
 
 @Ak.subcommand("upgrade")
-class AkUpgrade(cli.Application, DbTools):
+class AkUpgrade(AkSub):
     """Upgrade odoo."""
 
-    def main(self, *args):
-        db = self.determine_db()
-        params = []
-        params += ['-d', db]
-        command = 'bin/upgrade_openerp'
+    dbFlag = cli.SwitchAttr(
+        ["d"], help="Force Database")
 
-        return self.parent.log_and_exec(command, params, local.env)
+    def main(self, *args):
+        cmd = local['bin/upgrade_openerp']
+        if self.dbFlag:
+            cmd = cmd['-d', 'self.dbFlag']
+        return self._exec(cmd)
 
 
 class AkBuildFreeze(AkSub):
