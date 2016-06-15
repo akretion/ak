@@ -242,32 +242,18 @@ class AkDbLoad(AkSubDb):
         self._exec(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
 
-@Ak.subcommand("db")
-class AkDb(AkSubDb):
-    """Db tools.
+@Ak.subcommand("db:console")
+class AkDbConsole(AkSubDb):
 
-    Run without args to get a psql prompt
-    Credentials are extracted from etc/openerp.cfg
-
-    """
-
-    loadFlag = cli.Flag(["load"], group="IO",
-                        help="Load a dump")
-    dumpFlag = cli.Flag(["dump"], group="IO", requires=['p'],
-                        help="Export a dump")
-    waitFlag = cli.Flag(["wait"], group="Other",
-                        help="pg_isready")
-    infoFlag = cli.Flag(["info"], group="Other",
-                        help="info on db crendentials")
-    passFlag = cli.Flag(["admin-password"], group="Other",
-                        help="Change odoo admin password")
-
-    def psql(self):
+    def main(self):
         """Run psql."""
-        self.log_and_exec('psql', [], local.env)
+        self._exec(psql)
 
 
-    def dump(self, afile, force):
+@Ak.subcommand("db:dump")
+class AkDbDump(AkSubDb):
+
+    def main(self, output_name):
         """Dump database to file with pg_dump then gzip.
 
         :param afile: path to dump file
@@ -281,9 +267,20 @@ class AkDb(AkSubDb):
             raise Exception("output file already exists. Use --force")
         self.log_and_run(local['pg_dump'] | local['gzip'] > afile)
 
-    def wait(self):
-        """Run pg_isready."""
-        self.log_and_run(pg_isready)
+
+@Ak.subcommand("db")
+class AkDb(AkSubDb):
+    """Db tools.
+
+    Run without args to get a psql prompt
+    Credentials are extracted from etc/openerp.cfg
+
+    """
+
+    infoFlag = cli.Flag(["info"], group="Other",
+                        help="info on db crendentials")
+    passFlag = cli.Flag(["admin-password"], group="Other",
+                        help="Change odoo admin password")
 
     def info(self):
         """Print db informations from etc/buildout.cfg."""
@@ -309,27 +306,6 @@ session.cr.commit()
 """ % (self.db, new_pass)
         print local['echo'][code] | local['ak']['console']
         # TODO: run this command and test it !
-
-    def main(self, *args):
-
-        #  bind functions with AK
-        self.log_and_run = self.parent.log_and_run
-        self.log_and_exec = self.parent.log_and_exec
-
-        self.db = self.determine_db()  # get credentials
-
-        if (self.loadFlag):
-            self.load(self.path, self.force)
-        elif (self.dumpFlag):
-            self.dump(self.path, self.force)
-        elif (self.waitFlag):
-            self.wait()
-        elif (self.infoFlag):
-            self.info()
-        elif (self.passFlag):
-            self.changeAdminPassword(args)
-        else:
-            self.psql()
 
 
 @Ak.subcommand("diff")
