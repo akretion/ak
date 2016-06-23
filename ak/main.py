@@ -308,5 +308,68 @@ class AkDiff(cli.Application):
                     self.parent._run(git['status'])
 
 
+@Ak.subcommand("module")
+class AkModule(cli.Application):
+
+    module = cli.Flag(["m", "module"], help="Concerned module")
+
+
+@AkModule.subcommand("syntax")
+class AkModuleSyntax(cli.Application):
+    """Pylint and Flake8 testing tools.
+        Launch pylint and flake8 tests on 'modules' folder files
+        or files of a specific folder in 'parts'
+        using OCA quality tools configuration.
+    """
+
+    def main(self, *args):
+        if self.module:
+            self._exec(
+                local['cd'],
+                ['$(find', '/workspace/parts', '-name', self.module]
+            )
+            module_to_test = self.module
+        else:
+            self._exec(local['cd'], ['/workspace/modules'])
+            module_to_test = self._exec(ls)
+        config_dir = local.env['maintainer_quality_tools'] + '/travis/cfg'
+        logging.info(
+            'Launch flake8 and pylint tests on modules : %s.' % module_to_test)
+        self._exec(
+            local['flake8'],
+            ['.', '--config=%s/travis_run_flake8__init__.cfg' % config_dir])
+        self._exec(
+            local['flake8'],
+            ['.', '--config=%s/travis_run_flake8.cfg' % config_dir])
+
+        self._exec(
+            local['pylint'],
+            ['--rcfile=%s/travis_run_pylint.cfg' % config_dir, module_to_test])
+
+
+@AkModule.subcommand("test")
+class AkModuleTest(cli.Application):
+    """Module testing tools.
+        Start Odoo with test enabled.
+        Possibilty to choose the db and one specific or all installed modules.
+    """
+
+    db = cli.Flag(['d'], help="Database for the tests")
+
+    def main(self, *args):
+        params = []
+        if self.db:
+            params += ['-d', self.db]
+        else:
+            params += ['-d', local.env["PGDATABASE"]]
+        if self.module:
+            params += ['-u', self.module)]
+        else:
+            params += ['-u', 'all']
+        params += ['--stop-after-init', '--test-enable']
+        cmd = local['bin/start_openerp']
+        return self._exec(cmd, params)
+
+
 def main():
     Ak.run()
