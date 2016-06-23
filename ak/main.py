@@ -26,7 +26,7 @@ class Ak(cli.Application):
 
     dryrun = cli.Flag(["dry-run"], help="Dry run mode")
 
-    def _exec(self, cmd, retcode=FG):
+    def _run(self, cmd, retcode=FG):
         """Log cmd before exec."""
         logging.info(cmd)
         if (self.dryrun):
@@ -34,13 +34,13 @@ class Ak(cli.Application):
             return True
         return cmd & retcode
 
-    def log_and_exec(self, cmd, args=[], env=None):
+    def _exec(self, cmd, args=[]):
         """Log cmd and execve."""
         logging.info([cmd, args])
         if (self.dryrun):
             print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
             return True
-        os.execvpe(cmd, [cmd] + args, env)
+        os.execvpe(cmd, [cmd] + args, local.env)
 
     def read_erp_config_file(self):
         if not local.path(ERP_CFG).is_file():
@@ -80,18 +80,18 @@ class AkRun(AkSub):
         ["d"], help="Force Database")
 
     def main(self, *args):
+        params = []
         if self.console:
-            cmd = local['bin/python_openerp']
+            cmd = 'bin/python_openerp'
         else:
-            params = []
             if self.db:
                 params += ['--db-filter', self.db]
             if self.debug:
                 params += ['--debug']
             if self.update:
                 params += ['-u', str.join(',', self.update)]
-            cmd = local['bin/start_openerp'].__getitem__(params)
-        return self._exec(cmd)
+            cmd = 'bin/start_openerp'
+        return self._exec(cmd, params)
 
 
 @Ak.subcommand("upgrade")
@@ -102,10 +102,10 @@ class AkUpgrade(AkSub):
         ["d"], help="Force Database")
 
     def main(self, *args):
-        cmd = local['bin/upgrade_openerp']
+        params = []
         if self.db:
-            cmd = cmd['-d', self.db]
-        return self._exec(cmd)
+            params += ['-d', self.db]
+        return self._exec('bin/upgrade_openerp', params)
 
 
 class AkBuildFreeze(AkSub):
@@ -123,6 +123,7 @@ class AkBuildFreeze(AkSub):
             else:
                 # TODO replace with an adhoc exception
                 raise Exception("Missing buildout config file")
+
 
 @Ak.subcommand("build")
 class AkBuild(AkBuildFreeze):
@@ -145,7 +146,7 @@ class AkBuild(AkBuildFreeze):
         params = ['-c', self.config]
         if self.offline:
             params.append('-o')
-        self._exec(local['bin/buildout'].__getitem__(params))
+        self._exec('bin/buildout', params)
 
 
 @Ak.subcommand("freeze")
@@ -153,8 +154,9 @@ class AkFreeze(AkBuildFreeze):
     "Freeze dependencies for odoo"
 
     def main(self):
-        self._exec(local['bin/buildout'][
-            '-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
+        self._exec(
+            'bin/buildout',
+            ['-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
 
 
 class AkSubDb(AkSub):
@@ -220,26 +222,26 @@ class AkDbLoad(AkSubDb):
 
         # check if db exists
         cmd = psql["-c", ""]
-        if (self._exec(cmd, TF)):  # TF = result of cmd as True or False
+        if (self._run(cmd, TF)):  # TF = result of cmd as True or False
             if self.force:
                 logging.info('DB already exists. Drop and create it')
-                self._exec(dropdb[self.db])
-                self._exec(createdb[self.db])
+                self._run(dropdb[self.db])
+                self._run(createdb[self.db])
             else:
                 print "DB already exist, use --force to force loading"
                 return
         else:
             logging.info('DB does ont exists. Create it')
-            self._exec(createdb)
+            self._run(createdb)
 
         if p.suffix == '.gz':
-            self._exec(gunzip['-c', p] | psql)
+            self._run(gunzip['-c', p] | psql)
         else:
-            self._exec(pg_restore["-O", p, '-d', self.db])
+            self._run(pg_restore["-O", p, '-d', self.db])
 
         # set cron to inactive
         # TODO give a flag for that
-        self._exec(psql["-c", "'UPDATE ir_cron SET active=False;'"])
+        self._run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
 
 @Ak.subcommand("db:console")
@@ -247,7 +249,7 @@ class AkDbConsole(AkSubDb):
 
     def main(self):
         """Run psql."""
-        self._exec(psql)
+        self._exec('psql')
 
 
 @Ak.subcommand("db:dump")
@@ -264,8 +266,8 @@ class AkDbDump(AkSubDb):
         p = local.path(afile)
 
         if p.is_file() and not force:
-            raise Exception("output file already exists. Use --force")
-        self.log_and_run(local['pg_dump'] | local['gzip'] > afile)
+            raise Exception("outut file already exists. Use --force")
+        self._run(local['pg_dump'] | local['gzip'] > afile)
 
 
 @Ak.subcommand("db")
@@ -329,7 +331,7 @@ class AkDiff(cli.Application):
                 print ("~~~ Scanning folder %s" % path).ljust(100, '~')
                 print "".ljust(100, '~')
                 with local.cwd(path):
-                    self.parent.log_and_run(git['status'])
+                    self.parent._run(git['status'])
 
 
 def main():
