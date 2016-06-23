@@ -206,6 +206,10 @@ class AkDb(AkSub):
         else:
             self.db = local.env["PGDATABASE"]
 
+    def main(self):
+        """Run psql."""
+        self._exec('psql')
+
 
 @AkDb.subcommand("load")
 class AkDbLoad(AkSub):
@@ -254,7 +258,7 @@ class AkDbConsole(AkSub):
 
     def main(self):
         """Run psql."""
-        self._exec('psql')
+        self.parent.main()
 
 
 @AkDb.subcommand("dump")
