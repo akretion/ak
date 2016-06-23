@@ -27,7 +27,7 @@ class Ak(cli.Application):
     dryrun = cli.Flag(["dry-run"], help="Dry run mode")
 
     def _run(self, cmd, retcode=FG):
-        """Log cmd before exec."""
+        """Run a command in a new process and log it"""
         logging.info(cmd)
         if (self.dryrun):
             print cmd
@@ -35,7 +35,8 @@ class Ak(cli.Application):
         return cmd & retcode
 
     def _exec(self, cmd, args=[]):
-        """Log cmd and execve."""
+        """Run a command in the same process and log it
+        this will replace the current process by the cmd"""
         logging.info([cmd, args])
         if (self.dryrun):
             print "os.execvpe (%s, %s, env)" % (cmd, [cmd] + args)
@@ -66,6 +67,9 @@ class AkSub(cli.Application):
 
     def _exec(self, *args, **kwargs):
         return self.parent._exec(*args, **kwargs)
+
+    def _run(self, *args, **kwargs):
+        return self.parent._run(*args, **kwargs)
 
 
 @Ak.subcommand("run")
@@ -159,7 +163,8 @@ class AkFreeze(AkBuildFreeze):
             ['-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
 
 
-class AkSubDb(AkSub):
+@Ak.subcommand("db")
+class AkDb(AkSub):
     """Read db credentials from ERP_CFG.
 
     Add -d flag to the current command to override PGDATABASE
@@ -186,7 +191,7 @@ class AkSubDb(AkSub):
     db = cli.SwitchAttr(["d"], str, help="Database")
 
     def __init__(self, executable):
-        super(AkSubDb, self).__init__(executable)
+        super(AkDb, self).__init__(executable)
         """Extract db parameters from ERP_CFG."""
         config = self.parent.read_erp_config_file()
         for ini_key, pg_key in self.dbParams.iteritems():
@@ -202,8 +207,8 @@ class AkSubDb(AkSub):
             self.db = local.env["PGDATABASE"]
 
 
-@Ak.subcommand("db:load")
-class AkDbLoad(AkSubDb):
+@AkDb.subcommand("load")
+class AkDbLoad(AkSub):
 
     force = cli.Flag('--force', help="Force", group="IO")
 
@@ -244,16 +249,16 @@ class AkDbLoad(AkSubDb):
         self._run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
 
 
-@Ak.subcommand("db:console")
-class AkDbConsole(AkSubDb):
+@AkDb.subcommand("console")
+class AkDbConsole(AkSub):
 
     def main(self):
         """Run psql."""
         self._exec('psql')
 
 
-@Ak.subcommand("db:dump")
-class AkDbDump(AkSubDb):
+@AkDb.subcommand("dump")
+class AkDbDump(AkSub):
 
     def main(self, output_name):
         """Dump database to file with pg_dump then gzip.
@@ -270,44 +275,13 @@ class AkDbDump(AkSubDb):
         self._run(local['pg_dump'] | local['gzip'] > afile)
 
 
-@Ak.subcommand("db")
-class AkDb(AkSubDb):
-    """Db tools.
+@AkDb.subcommand("info")
+class AkDbInfo(AkSub):
+    """Print db informations from etc/buildout.cfg."""
 
-    Run without args to get a psql prompt
-    Credentials are extracted from etc/openerp.cfg
-
-    """
-
-    infoFlag = cli.Flag(["info"], group="Other",
-                        help="info on db crendentials")
-    passFlag = cli.Flag(["admin-password"], group="Other",
-                        help="Change odoo admin password")
-
-    def info(self):
-        """Print db informations from etc/buildout.cfg."""
-        for ini_key, pg_key in self.dbParams.iteritems():
+    def main(self):
+        for ini_key, pg_key in self.parent.dbParams.iteritems():
             print ini_key, local.env.get(pg_key, '')
-
-    def changeAdminPassword(self, args):
-        """Change admin password."""
-
-        new_pass = (args or [False])[0]
-
-        if (not new_pass):  # not provided by cli
-            new_pass = cli.terminal.prompt(
-                'New admin password ?', str, "admin")
-
-        print "New admin password for %s is : '%s'" % (self.db, new_pass)
-
-        code = """session.open(db='%s')"
-user_ids = session.registry('res.users').search(session.cr, 1, [])",
-for user in session.registry('res.users').browse(session.cr, 1, user_ids):",
-    user.write({'password': '%s' })",
-session.cr.commit()
-""" % (self.db, new_pass)
-        print local['echo'][code] | local['ak']['console']
-        # TODO: run this command and test it !
 
 
 @Ak.subcommand("diff")
