@@ -74,7 +74,7 @@ class AkSub(cli.Application):
 
 @Ak.subcommand("run")
 class AkRun(AkSub):
-    """Start openerp."""
+    """Start odoo."""
 
     debug = cli.Flag(["D", "debug"], help="Debug mode")
     console = cli.Flag(['console'], help="Console mode")
@@ -89,7 +89,7 @@ class AkRun(AkSub):
             cmd = 'bin/python_openerp'
         else:
             if self.db:
-                params += ['--db-filter', self.db]
+                params += ['-d', self.db]
             if self.debug:
                 params += ['--debug']
             if self.update:
@@ -218,7 +218,7 @@ class AkDbLoad(AkSub):
         Will create a database if not exist already
 
         :param dump_file: path to dump (can be .gz or .tar)
-        :param foce: db will be dropped before the load
+        :param force: db will be dropped before the load
         """
         p = local.path(dump_file)
 
