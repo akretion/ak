@@ -76,26 +76,21 @@ class AkSub(cli.Application):
 class AkRun(AkSub):
     """Start odoo."""
 
-    debug = cli.Flag(["D", "debug"], help="Debug mode")
-    console = cli.Flag(['console'], help="Console mode")
-    update = cli.SwitchAttr(
-        ["u", "update"], list=True, help="Update module")
-    db = cli.SwitchAttr(
-        ["d"], help="Force Database")
+    def _parse_args(self, argv):
+        self.argv = argv
+        argv = []
+        return super(AkRun, self)._parse_args(argv)
 
-    def main(self, *args):
-        params = []
-        if self.console:
-            cmd = 'bin/python_openerp'
-        else:
-            if self.db:
-                params += ['-d', self.db]
-            if self.debug:
-                params += ['--debug']
-            if self.update:
-                params += ['-u', str.join(',', self.update)]
-            cmd = 'bin/start_openerp'
-        return self._exec(cmd, params)
+    def main(self):
+        return self._exec('bin/start_openerp', self.argv)
+
+
+@Ak.subcommand("console")
+class AkConsole(AkSub):
+    """Start a python console."""
+
+    def main(self):
+        return self._exec('bin/python_openerp')
 
 
 @Ak.subcommand("upgrade")
