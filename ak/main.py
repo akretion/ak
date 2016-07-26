@@ -10,6 +10,8 @@ from plumbum.commands.modifiers import FG, TF
 import os
 import ConfigParser
 
+__version__ = '1.1.0'
+
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
 ERP_CFG = 'etc/openerp.cfg'
@@ -22,7 +24,7 @@ MODULE_FOLDER = WORKSPACE + 'parts/'
 
 class Ak(cli.Application):
     PROGNAME = "ak"
-    VERSION = "1.0"
+    VERSION = __version__
 
     dryrun = cli.Flag(["dry-run"], help="Dry run mode")
 
