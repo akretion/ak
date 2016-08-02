@@ -1,5 +1,6 @@
 ## Ak
 
+```
 
 Usage:
     ak [SWITCHES] [SUBCOMMAND [SWITCHES]] args...
@@ -23,3 +24,4 @@ Subcommands:
     freeze             Freeze dependencies for odoo; see 'ak freeze --help' for more info
     run                Start odoo.; see 'ak run --help' for more info
     upgrade            Upgrade odoo.; see 'ak upgrade --help' for more info
+```
