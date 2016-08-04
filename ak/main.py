@@ -10,7 +10,7 @@ from plumbum.commands.modifiers import FG, TF
 import os
 import ConfigParser
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
