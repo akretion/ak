@@ -15,11 +15,10 @@ __version__ = '1.1.1'
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
 ERP_CFG = 'etc/openerp.cfg'
-DEV_BUILD = "buildout.dev.cfg"
-PROD_BUILD = "buildout.prod.cfg"
+BUILDOUT_FILE = "buildout.%s.cfg"
 WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
-
+ENV=os.environ.get('AK_ENV', 'dev')
 
 
 class Ak(cli.Application):
@@ -117,13 +116,12 @@ class AkBuildFreeze(AkSub):
     def __init__(self, *args, **kwargs):
         super(AkBuildFreeze, self).__init__(*args, **kwargs)
         if not self.config:
-            if os.path.isfile(WORKSPACE + PROD_BUILD):
-                self.config = WORKSPACE + PROD_BUILD
-            elif os.path.isfile(WORKSPACE + DEV_BUILD):
-                self.config = WORKSPACE + DEV_BUILD
+            buildout_file_path = os.path.join(WORKSPACE, BUILDOUT_FILE % ENV)
+            if os.path.isfile(buildout_file_path):
+                self.config = buildout_file_path
             else:
-                # TODO replace with an adhoc exception
-                raise Exception("Missing buildout config file")
+                raise Exception(
+                    "Missing buildout config file, %s" % buildout_file_path)
 
 
 @Ak.subcommand("build")
