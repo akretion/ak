@@ -321,5 +321,25 @@ class AkDiff(cli.Application):
                     self.parent._run(git['status'])
 
 
+@Ak.subcommand("project")
+class AkProject(AkSub):
+    """Project task related"""
+
+
+@AkProject.subcommand("check-update")
+class AkProjectCheckUpdate(AkSub):
+
+    apply = cli.Flag(
+        '--apply',
+        help="Apply update version in the frozen file",
+        group="IO")
+
+    def main(self, *args):
+        params = ['frozen.cfg']
+        if self.apply:
+            params += ['-w', '--indent', '24']
+        self._exec('check-buildout-updates', params)
+
+
 def main():
     Ak.run()
