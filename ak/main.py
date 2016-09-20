@@ -19,7 +19,7 @@ BUILDOUT_FILE = "buildout.%s.cfg"
 WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
 ENV=os.environ.get('AK_ENV', 'dev')
-UPGRADE_DIR = 'upgrade-log'
+UPGRADE_LOG_DIR = 'upgrade-log'
 
 
 class Ak(cli.Application):
@@ -105,7 +105,7 @@ class AkUpgrade(AkSub):
     def _get_log_params(self):
         config = self.parent.read_erp_config_file()
         data_dir = config.get('options', 'data_dir')
-        upgrade_dir_full_path = os.path.join(data_dir, UPGRADE_DIR)
+        upgrade_dir_full_path = os.path.join(data_dir, UPGRADE_LOG_DIR)
         if not os.path.exists(upgrade_dir_full_path):
             os.makedirs(upgrade_dir_full_path)
         version = open('VERSION.txt', 'r').read().strip()
