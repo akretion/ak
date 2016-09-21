@@ -12,7 +12,7 @@ import os
 import ConfigParser
 
 
-__version__ = '1.1.1'
+__version__ = '1.2.0'
 
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
