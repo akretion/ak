@@ -7,8 +7,10 @@ from plumbum import cli, local
 from plumbum.cmd import (
     gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python)
 from plumbum.commands.modifiers import FG, TF
+from datetime import datetime
 import os
 import ConfigParser
+
 
 __version__ = '1.1.1'
 
@@ -319,6 +321,51 @@ class AkDiff(cli.Application):
                 print "".ljust(100, '~')
                 with local.cwd(path):
                     self.parent._run(git['status'])
+
+
+@Ak.subcommand("project")
+class AkProject(AkSub):
+    """Project task related"""
+
+
+@AkProject.subcommand("check-update")
+class AkProjectCheckUpdate(AkSub):
+
+    apply = cli.Flag(
+        '--apply',
+        help="Apply update version in the frozen file",
+        group="IO")
+
+    def main(self, *args):
+        params = ['frozen.cfg']
+        if self.apply:
+            params += ['-w', '--indent', '24']
+        self._exec('check-buildout-updates', params)
+
+
+@AkProject.subcommand("release")
+class AkProjectRelease(AkSub):
+
+    def main(self, *args):
+        base_version = datetime.now().strftime('%y.%W')
+        version = open('VERSION.txt', 'r').read().strip()
+        if base_version > version:
+            increment = 1
+        else:
+            increment = int(version.split('.')[2]) + 1
+        new_version = "%s.%s" % (base_version, increment)
+        f = open('VERSION.txt', 'w')
+        f.write(new_version)
+        f.close()
+        migration_file_path = os.path.join('upgrade', 'current.py')
+        if os.path.exists(migration_file_path):
+            new_path = os.path.join('upgrade', '%s.py' % new_version)
+            os.rename(migration_file_path, new_path)
+            self._run(git['add', new_path])
+        message = '[BUMP] version %s' % new_version
+        self._run(git['add', 'VERSION.txt'])
+        self._run(git['commit', '-m', message])
+        self._run(git['tag', '-a', new_version, '-m', message])
 
 
 def main():
