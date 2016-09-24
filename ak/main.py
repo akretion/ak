@@ -339,7 +339,7 @@ class AkProjectCheckUpdate(AkSub):
     def main(self, *args):
         params = ['frozen.cfg']
         if self.apply:
-            params += ['-w', '--indent', '24']
+            params += ['-w', '--indent', '10']
         self._exec('check-buildout-updates', params)
 
 
@@ -360,7 +360,7 @@ class AkProjectRelease(AkSub):
         migration_file_path = os.path.join('upgrade', 'current.py')
         if os.path.exists(migration_file_path):
             new_path = os.path.join('upgrade', '%s.py' % new_version)
-            os.rename(migration_file_path, new_path)
+            self._run(git['mv', migration_file_path, new_path])
             self._run(git['add', new_path])
         message = '[BUMP] version %s' % new_version
         self._run(git['add', 'VERSION.txt'])
