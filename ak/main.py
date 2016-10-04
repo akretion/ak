@@ -11,6 +11,8 @@ from datetime import datetime
 import os
 import ConfigParser
 
+from plumbum.commands.base import BaseCommand
+
 
 __version__ = '1.2.1'
 
@@ -22,6 +24,19 @@ WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
 ENV=os.environ.get('AK_ENV', 'dev')
 UPGRADE_LOG_DIR = 'upgrade-log'
+DRYRUN = False
+
+# Hack to set/unset log and dryrun to plumbum
+base_call = BaseCommand.__call__
+
+def custom_call(self, *args, **kwargs):
+    logging.info("%s, %s", self, args)
+    if DRYRUN:
+        print 'dryrun : ', self, args
+        return True
+    base_call(self, *args, **kwargs)
+
+BaseCommand.__call__ = custom_call
 
 
 class Ak(cli.Application):
@@ -29,14 +44,6 @@ class Ak(cli.Application):
     VERSION = __version__
 
     dryrun = cli.Flag(["dry-run"], help="Dry run mode")
-
-    def _run(self, cmd, retcode=FG):
-        """Run a command in a new process and log it"""
-        logging.info(cmd)
-        if (self.dryrun):
-            print cmd
-            return True
-        return cmd & retcode
 
     def _exec(self, cmd, args=[]):
         """Run a command in the same process and log it
@@ -60,6 +67,8 @@ class Ak(cli.Application):
         logging.info('Verbose mode activated')
 
     def main(self, *args):
+        global DRYRUN
+        DRYRUN = self.dryrun
         if args:
             print "Unkown command %r" % (args[0],)
             return 1  # return error
@@ -71,9 +80,6 @@ class AkSub(cli.Application):
 
     def _exec(self, *args, **kwargs):
         return self.parent._exec(*args, **kwargs)
-
-    def _run(self, *args, **kwargs):
-        return self.parent._run(*args, **kwargs)
 
 
 @Ak.subcommand("run")
@@ -241,27 +247,26 @@ class AkDbLoad(AkSub):
             raise Exception("input file not found")
 
         # check if db exists
-        cmd = psql["-c", ""]
-        if (self._run(cmd, TF)):  # TF = result of cmd as True or False
+        if psql["-c", ""] & TF:  # TF = result of cmd as True or False
             if self.force:
                 logging.info('DB already exists. Drop and create it')
-                self._run(dropdb[self.db])
-                self._run(createdb[self.db])
+                dropdb(self.db)
+                createdb(self.db)
             else:
                 print "DB already exist, use --force to force loading"
                 return
         else:
             logging.info('DB does ont exists. Create it')
-            self._run(createdb)
+            createdb(self.db)
 
         if p.suffix == '.gz':
-            self._run(gunzip['-c', p] | psql)
+            gunzip['-c', p] | psql()
         else:
-            self._run(pg_restore["-O", p, '-d', self.db])
+            pg_restore("-O", p, '-d', self.db)
 
         # set cron to inactive
         # TODO give a flag for that
-        self._run(psql["-c", "'UPDATE ir_cron SET active=False;'"])
+        psql("-c", "'UPDATE ir_cron SET active=False;'")
 
 
 @AkDb.subcommand("console")
@@ -287,7 +292,7 @@ class AkDbDump(AkSub):
 
         if p.is_file() and not force:
             raise Exception("outut file already exists. Use --force")
-        self._run(local['pg_dump'] | local['gzip'] > afile)
+        pg_dump | local['gzip'] > afile
 
 
 @AkDb.subcommand("info")
@@ -320,7 +325,7 @@ class AkDiff(cli.Application):
                 print ("~~~ Scanning folder %s" % path).ljust(100, '~')
                 print "".ljust(100, '~')
                 with local.cwd(path):
-                    self.parent._run(git['status'])
+                    git['status']
 
 
 @Ak.subcommand("project")
@@ -360,12 +365,12 @@ class AkProjectRelease(AkSub):
         migration_file_path = os.path.join('upgrade', 'current.py')
         if os.path.exists(migration_file_path):
             new_path = os.path.join('upgrade', '%s.py' % new_version)
-            self._run(git['mv', migration_file_path, new_path])
-            self._run(git['add', new_path])
+            git('mv', migration_file_path, new_path)
+            git('add', new_path)
         message = '[BUMP] version %s' % new_version
-        self._run(git['add', 'VERSION.txt'])
-        self._run(git['commit', '-m', message])
-        self._run(git['tag', '-a', new_version, '-m', message])
+        git('add', 'VERSION.txt')
+        git('commit', '-m', message)
+        git('tag', '-a', new_version, '-m', message)
 
 
 def main():
