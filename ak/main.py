@@ -14,7 +14,7 @@ import ConfigParser
 from plumbum.commands.base import BaseCommand
 
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 BUILDOUT_URL = ('https://raw.github.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
@@ -344,7 +344,7 @@ class AkProjectCheckUpdate(AkSub):
     def main(self, *args):
         params = ['frozen.cfg']
         if self.apply:
-            params += ['-w', '--indent', '10']
+            params += ['-w', '--indent', '2']
         self._exec('check-buildout-updates', params)
 
 
