@@ -14,9 +14,9 @@ import ConfigParser
 from plumbum.commands.base import BaseCommand
 
 
-__version__ = '1.2.2'
+__version__ = '1.2.3'
 
-BUILDOUT_URL = ('https://raw.github.com/buildout/'
+BUILDOUT_URL = ('https://raw.githubusercontent.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
 ERP_CFG = 'etc/openerp.cfg'
 BUILDOUT_FILE = "buildout.%s.cfg"
