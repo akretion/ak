@@ -5,7 +5,8 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python)
+    gunzip, pg_isready, createdb, psql,
+    dropdb, pg_restore, pg_dump, git, wget, python)
 from plumbum.commands.modifiers import FG, TF
 from datetime import datetime
 import os
@@ -14,7 +15,7 @@ import ConfigParser
 from plumbum.commands.base import BaseCommand
 
 
-__version__ = '1.2.4'
+__version__ = '1.2.5'
 
 BUILDOUT_URL = ('https://raw.githubusercontent.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
@@ -196,6 +197,7 @@ class AkDb(AkSub):
                 # your stuff here
                 print self.db
     """
+    CALL_MAIN_IF_NESTED_COMMAND = False
 
     dbParams = {
         "db_host": "PGHOST",
@@ -232,13 +234,15 @@ class AkDb(AkSub):
 class AkDbLoad(AkSub):
 
     force = cli.Flag('--force', help="Force", group="IO")
+    keep_cron = cli.Flag(
+        '--keep-cron', help="Keep the cron active", group="IO")
 
     def main(self, dump_file):
         """Load (restore) a dump from a file.
 
         Will create a database if not exist already
 
-        :param dump_file: path to dump (can be .gz or .tar)
+        :param dump_file: path to dump (can be .gz or .dump)
         :param force: db will be dropped before the load
         """
         p = local.path(dump_file)
@@ -247,26 +251,26 @@ class AkDbLoad(AkSub):
             raise Exception("input file not found")
 
         # check if db exists
-        if psql["-c", ""] & TF:  # TF = result of cmd as True or False
+        db = self.parent.db
+        if psql[db, "-c", ""] & TF:  # TF = result of cmd as True or False
             if self.force:
                 logging.info('DB already exists. Drop and create it')
-                dropdb(self.db)
-                createdb(self.db)
+                dropdb(db)
+                createdb(db)
             else:
                 print "DB already exist, use --force to force loading"
                 return
         else:
             logging.info('DB does ont exists. Create it')
-            createdb(self.db)
+            createdb(db)
 
         if p.suffix == '.gz':
             gunzip['-c', p] | psql()
         else:
-            pg_restore("-O", p, '-d', self.db)
+            pg_restore("-O", "-j8", p, '-d', db)
 
-        # set cron to inactive
-        # TODO give a flag for that
-        psql("-c", "'UPDATE ir_cron SET active=False;'")
+        if not self.keep_cron:
+            psql(db, "-c", "UPDATE ir_cron SET active=False")
 
 
 @AkDb.subcommand("console")
@@ -280,19 +284,21 @@ class AkDbConsole(AkSub):
 @AkDb.subcommand("dump")
 class AkDbDump(AkSub):
 
-    def main(self, output_name):
-        """Dump database to file with pg_dump then gzip.
+    force = cli.Flag('--force', help="Force", group="IO")
 
-        :param afile: path to dump file
+    def main(self, output_name):
+        """Dump database to file with pg_dump to native pg format.
+
+        :param output_name: path to dump file
         :param force: overwrite the file if exists
 
         """
-        # TODO choose format
-        p = local.path(afile)
+        output_name += '.dump'
+        p = local.path(output_name)
 
-        if p.is_file() and not force:
+        if p.is_file() and not self.force:
             raise Exception("outut file already exists. Use --force")
-        pg_dump | local['gzip'] > afile
+        (pg_dump["-Fc", self.parent.db] > output_name)()
 
 
 @AkDb.subcommand("info")
