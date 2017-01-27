@@ -5,8 +5,9 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python)
-from plumbum.commands.modifiers import FG, TF
+    gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python,
+    flake8, pylint, ls)
+from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 import os
 import ConfigParser
 
@@ -309,65 +310,65 @@ class AkDiff(cli.Application):
 
 
 @Ak.subcommand("module")
-class AkModule(cli.Application):
-
-    module = cli.Flag(["m", "module"], help="Concerned module")
+class AkModule(AkSub):
 
 
 @AkModule.subcommand("syntax")
-class AkModuleSyntax(cli.Application):
+class AkModuleSyntax(AkSub):
     """Pylint and Flake8 testing tools.
         Launch pylint and flake8 tests on 'modules' folder files
         or files of a specific folder in 'parts'
         using OCA quality tools configuration.
     """
 
+    module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
+
     def main(self, *args):
         if self.module:
-            self._exec(
-                local['cd'],
-                ['$(find', '/workspace/parts', '-name', self.module]
-            )
+            find = local['find']['/workspace/parts', '-name', self.module] & BG
+            path = find.stdout.split('\n')[0]
             module_to_test = self.module
         else:
-            self._exec(local['cd'], ['/workspace/modules'])
-            module_to_test = self._exec(ls)
-        config_dir = local.env['maintainer_quality_tools'] + '/travis/cfg'
-        logging.info(
-            'Launch flake8 and pylint tests on modules : %s.' % module_to_test)
-        self._exec(
-            local['flake8'],
-            ['.', '--config=%s/travis_run_flake8__init__.cfg' % config_dir])
-        self._exec(
-            local['flake8'],
-            ['.', '--config=%s/travis_run_flake8.cfg' % config_dir])
-
-        self._exec(
-            local['pylint'],
-            ['--rcfile=%s/travis_run_pylint.cfg' % config_dir, module_to_test])
+            with local.cwd('/workspace/modules'):
+                module_to_test = ls()
+            path = '/workspace/modules'
+        with local.cwd(path):
+            config_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/cfg'
+            print config_dir
+            logging.info(
+                'Launch flake8 and pylint tests on modules : %s.' % module_to_test)
+            flake = flake8('.', '--config=%s/travis_run_flake8__init__.cfg' % config_dir, retcode=None)
+            print flake
+            flake2 = flake8('.', '--config=%s/travis_run_flake8.cfg' % config_dir, retcode=None)
+            print flake2
+            pylint_res = pylint('--rcfile=%s/travis_run_pylint_pr.cfg' % config_dir, module_to_test, retcode=None)
+            print pylint_res
 
 
 @AkModule.subcommand("test")
-class AkModuleTest(cli.Application):
+class AkModuleTest(AkSub):
     """Module testing tools.
         Start Odoo with test enabled.
         Possibilty to choose the db and one specific or all installed modules.
     """
 
-    db = cli.Flag(['d'], help="Database for the tests")
+    module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
+    db = cli.SwitchAttr(['d'], str, help="Database for the tests")
 
     def main(self, *args):
         params = []
         if self.db:
             params += ['-d', self.db]
         else:
-            params += ['-d', local.env["PGDATABASE"]]
+            config = self.parent.parent.read_erp_config_file()
+            db = config.get('options', 'db_name')
+            params += ['-d', db]
         if self.module:
-            params += ['-u', self.module)]
+            params += ['-u', self.module]
         else:
             params += ['-u', 'all']
         params += ['--stop-after-init', '--test-enable']
-        cmd = local['bin/start_openerp']
+        cmd = 'bin/start_openerp'
         return self._exec(cmd, params)
 
 
