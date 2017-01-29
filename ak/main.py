@@ -436,15 +436,17 @@ class AkModuleTest(AkSub):
     def main(self, *args):
         params = []
         if self.db:
-            params += ['-d', self.db]
+            db = self.db
         else:
             config = self.parent.parent.read_erp_config_file()
             db = config.get('options', 'db_name')
-            params += ['-d', db]
-        if self.module:
-            params += ['-u', self.module]
+        params += ['-d', db]
+        module = self.module or 'all'
+        if psql[db, "-c", ""] & TF:  # TF = result of cmd as True or False
+            params += ['-u', module]
         else:
-            params += ['-u', 'all']
+            createdb(db)
+            params += ['-i', module]
         params += ['--stop-after-init', '--test-enable']
         cmd = 'bin/start_openerp'
         return self._exec(cmd, params)
