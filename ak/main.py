@@ -343,12 +343,16 @@ class AkModuleSyntax(AkSub):
             config_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/cfg'
             print config_dir
             logging.info(
-                'Launch flake8 and pylint tests on modules : %s.' % module_to_test)
-            flake = flake8('.', '--config=%s/travis_run_flake8__init__.cfg' % config_dir, retcode=None)
+                'Launch flake8 and pylint tests on modules : %s.'
+                % module_to_test)
+            flake = flake8('.', '--config=%s/travis_run_flake8__init__.cfg'
+                           % config_dir, retcode=None)
             print flake
-            flake2 = flake8('.', '--config=%s/travis_run_flake8.cfg' % config_dir, retcode=None)
+            flake2 = flake8('.', '--config=%s/travis_run_flake8.cfg'
+                            % config_dir, retcode=None)
             print flake2
-            pylint_res = pylint('--rcfile=%s/travis_run_pylint_pr.cfg' % config_dir, module_to_test, retcode=None)
+            pylint_res = pylint('--rcfile=%s/travis_run_pylint_pr.cfg'
+                                % config_dir, module_to_test, retcode=None)
             print pylint_res
 
 
