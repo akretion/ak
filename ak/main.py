@@ -15,7 +15,7 @@ import ConfigParser
 from plumbum.commands.base import BaseCommand
 
 
-__version__ = '1.2.5'
+__version__ = '1.3.0'
 
 BUILDOUT_URL = ('https://raw.githubusercontent.com/buildout/'
                 'buildout/master/bootstrap/bootstrap.py')
