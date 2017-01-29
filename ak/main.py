@@ -7,7 +7,7 @@ from plumbum import cli, local
 from plumbum.cmd import (
     gunzip, pg_isready, createdb, psql,
     dropdb, pg_restore, pg_dump, git, wget, python)
-from plumbum.commands.modifiers import FG, TF
+from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
 import os
 import ConfigParser
@@ -35,7 +35,7 @@ def custom_call(self, *args, **kwargs):
     if DRYRUN:
         print 'dryrun : ', self, args
         return True
-    base_call(self, *args, **kwargs)
+    return base_call(self, *args, **kwargs)
 
 BaseCommand.__call__ = custom_call
 
@@ -377,6 +377,77 @@ class AkProjectRelease(AkSub):
         git('add', 'VERSION.txt')
         git('commit', '-m', message)
         git('tag', '-a', new_version, '-m', message)
+
+
+@Ak.subcommand("module")
+class AkModule(AkSub):
+    """Testing Module"""
+
+
+@AkModule.subcommand("syntax")
+class AkModuleSyntax(AkSub):
+    """Pylint and Flake8 testing tools.
+        Launch pylint and flake8 tests on 'modules' folder files
+        or files of a specific folder in 'parts'
+        using OCA quality tools configuration.
+    """
+
+    module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
+    path = cli.SwitchAttr(["p", "path"], str, help="Path to a git repository")
+
+    def main(self, *args):
+        if self.path and self.module:
+            raise Exception(
+                "Can not have the params path and module at the same time")
+        if self.module:
+            find = local['find']['/workspace/parts', '-name', self.module] & BG
+            path = find.stdout.split('\n')[0]
+        else:
+            version = None
+            if self.path:
+                path = self.path
+            else:
+                path = '/workspace/modules'
+
+        print "Launch flake8 and pylint tests on path : %s" % path
+
+        with local.cwd(path):
+            travis_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/'
+            flake8 = local[travis_dir + 'test_flake8'](retcode=None)
+            print flake8
+            with local.env(
+                    TRAVIS_PULL_REQUEST="true",
+                    TRAVIS_BRANCH="HEAD",
+                    TRAVIS_BUILD_DIR='.'):
+                pylint = local[travis_dir + 'test_pylint'](retcode=None)
+                print pylint
+
+
+@AkModule.subcommand("test")
+class AkModuleTest(AkSub):
+    """Module testing tools.
+        Start Odoo with test enabled.
+        Possibilty to choose the db and one specific or all installed modules.
+    """
+
+    module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
+    db = cli.SwitchAttr(['d'], str, help="Database for the tests")
+
+    def main(self, *args):
+        params = []
+        if self.db:
+            params += ['-d', self.db]
+        else:
+            config = self.parent.parent.read_erp_config_file()
+            db = config.get('options', 'db_name')
+            params += ['-d', db]
+        if self.module:
+            params += ['-u', self.module]
+        else:
+            params += ['-u', 'all']
+        params += ['--stop-after-init', '--test-enable']
+        cmd = 'bin/start_openerp'
+        return self._exec(cmd, params)
 
 
 def main():
