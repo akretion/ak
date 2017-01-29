@@ -311,6 +311,7 @@ class AkDiff(cli.Application):
 
 @Ak.subcommand("module")
 class AkModule(AkSub):
+    """Testing Module"""
 
 
 @AkModule.subcommand("syntax")
@@ -322,16 +323,22 @@ class AkModuleSyntax(AkSub):
     """
 
     module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
+    path = cli.SwitchAttr(["p", "path"], str, help="Concerned path")
 
     def main(self, *args):
+        if self.path and self.module:
+            raise Exception("Can not path the module and the path")
         if self.module:
             find = local['find']['/workspace/parts', '-name', self.module] & BG
             path = find.stdout.split('\n')[0]
             module_to_test = self.module
         else:
-            with local.cwd('/workspace/modules'):
+            if self.path:
+                path = self.path
+            else:
+                path = '/workspace/modules'
+            with local.cwd(path):
                 module_to_test = ls()
-            path = '/workspace/modules'
         with local.cwd(path):
             config_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/cfg'
             print config_dir
