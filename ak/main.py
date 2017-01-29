@@ -6,7 +6,7 @@ import logging
 from plumbum import cli, local
 from plumbum.cmd import (
     gunzip, pg_isready, createdb, psql, dropdb, pg_restore, git, wget, python,
-    flake8, pylint, ls)
+    ls)
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 import os
 import ConfigParser
@@ -323,37 +323,35 @@ class AkModuleSyntax(AkSub):
     """
 
     module = cli.SwitchAttr(["m", "module"], str, help="Concerned module")
-    path = cli.SwitchAttr(["p", "path"], str, help="Concerned path")
+    path = cli.SwitchAttr(["p", "path"], str, help="Path to a git repository")
 
     def main(self, *args):
         if self.path and self.module:
-            raise Exception("Can not path the module and the path")
+            raise Exception(
+                "Can not have the params path and module at the same time")
         if self.module:
             find = local['find']['/workspace/parts', '-name', self.module] & BG
             path = find.stdout.split('\n')[0]
             module_to_test = self.module
         else:
+            version = None
             if self.path:
                 path = self.path
             else:
                 path = '/workspace/modules'
             with local.cwd(path):
                 module_to_test = ls()
+
         with local.cwd(path):
-            config_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/cfg'
-            print config_dir
-            logging.info(
-                'Launch flake8 and pylint tests on modules : %s.'
-                % module_to_test)
-            flake = flake8('.', '--config=%s/travis_run_flake8__init__.cfg'
-                           % config_dir, retcode=None)
-            print flake
-            flake2 = flake8('.', '--config=%s/travis_run_flake8.cfg'
-                            % config_dir, retcode=None)
-            print flake2
-            pylint_res = pylint('--rcfile=%s/travis_run_pylint_pr.cfg'
-                                % config_dir, module_to_test, retcode=None)
-            print pylint_res
+            travis_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/'
+            flake8 = local[travis_dir + 'test_flake8'](retcode=None)
+            print flake8
+            with local.env(
+                    TRAVIS_PULL_REQUEST="true",
+                    TRAVIS_BRANCH="HEAD",
+                    TRAVIS_BUILD_DIR='.'):
+                pylint = local[travis_dir + 'test_pylint'](retcode=None)
+                print pylint
 
 
 @AkModule.subcommand("test")
