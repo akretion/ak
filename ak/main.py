@@ -331,7 +331,8 @@ class AkDiff(cli.Application):
                 print ("~~~ Scanning folder %s" % path).ljust(100, '~')
                 print "".ljust(100, '~')
                 with local.cwd(path):
-                    git['status']
+                    status = git['status'](retcode=None)
+                    print status
 
 
 @Ak.subcommand("project")
