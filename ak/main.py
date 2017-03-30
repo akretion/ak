@@ -56,10 +56,15 @@ class Ak(cli.Application):
         os.execvpe(cmd, [cmd] + args, local.env)
 
     def read_erp_config_file(self):
-        if not local.path(ERP_CFG).is_file():
+
+        if local.path(ERP_CFG).is_file():
+            config_path = ERP_CFG
+        elif local.path(WORKSPACE + ERP_CFG).is_file():
+            config_path = WORKSPACE + ERP_CFG
+        else:
             raise Exception("Missing ERP config file %s" % ERP_CFG)
         config = ConfigParser.ConfigParser()
-        config.readfp(open(ERP_CFG))
+        config.readfp(open(config_path))
         return config
 
     @cli.switch("--verbose", help="Verbose mode")
@@ -452,6 +457,29 @@ class AkModuleTest(AkSub):
         cmd = 'bin/start_openerp'
         return self._exec(cmd, params)
 
+@AkModule.subcommand("diff")
+class AkDiff(AkSub):
+    """Diff tools.
+        Based on installed module in your database scan the directory
+        and show the diff between the version requested and the current
+        version
+    """
+
+    def main(self, commit):
+        if not local.path('.git').is_dir():
+            print "no git repository found"
+            return
+        config = self.parent.parent.read_erp_config_file()
+        db = config.get('options', 'db_name')
+        res = psql(db, "-c", """SELECT name
+             FROM ir_module_module
+             WHERE state in ('installed', 'to upgrade')""")
+        installed_modules = [m.strip() for m in res.split('\n')]
+        local_modules = [m.name for m in local.path('.').list()
+                         if m.name in installed_modules]
+        params = ['diff', commit, 'HEAD', '--'] + local_modules\
+                + [':!*.po', ':!*.pot']
+        self.parent.parent._exec("git", params)
 
 def main():
     Ak.run()
