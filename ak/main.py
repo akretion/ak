@@ -23,12 +23,13 @@ ERP_CFG = 'etc/openerp.cfg'
 BUILDOUT_FILE = "buildout.%s.cfg"
 WORKSPACE = '/workspace/'
 MODULE_FOLDER = WORKSPACE + 'parts/'
-ENV=os.environ.get('AK_ENV', 'dev')
+ENV = os.environ.get('AK_ENV', 'dev')
 UPGRADE_LOG_DIR = 'upgrade-log'
 DRYRUN = False
 
 # Hack to set/unset log and dryrun to plumbum
 base_call = BaseCommand.__call__
+
 
 def custom_call(self, *args, **kwargs):
     logging.info("%s, %s", self, args)
@@ -36,6 +37,7 @@ def custom_call(self, *args, **kwargs):
         print 'dryrun : ', self, args
         return True
     return base_call(self, *args, **kwargs)
+
 
 BaseCommand.__call__ = custom_call
 
@@ -81,6 +83,7 @@ class Ak(cli.Application):
         if not self.nested_command:
             print "No command given"
             return 1
+
 
 class AkSub(cli.Application):
 
@@ -409,7 +412,6 @@ class AkModuleSyntax(AkSub):
             find = local['find']['/workspace/parts', '-name', self.module] & BG
             path = find.stdout.split('\n')[0]
         else:
-            version = None
             if self.path:
                 path = self.path
             else:
@@ -457,6 +459,7 @@ class AkModuleTest(AkSub):
         cmd = 'bin/start_openerp'
         return self._exec(cmd, params)
 
+
 @AkModule.subcommand("diff")
 class AkDiff(AkSub):
     """Diff tools.
@@ -478,8 +481,9 @@ class AkDiff(AkSub):
         local_modules = [m.name for m in local.path('.').list()
                          if m.name in installed_modules]
         params = ['diff', commit, 'HEAD', '--'] + local_modules\
-                + [':!*.po', ':!*.pot']
+            + [':!*.po', ':!*.pot']
         self.parent.parent._exec("git", params)
+
 
 def main():
     Ak.run()
