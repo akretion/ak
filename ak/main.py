@@ -375,10 +375,14 @@ class AkProjectRelease(AkSub):
         f.write(new_version)
         f.close()
         migration_file_path = os.path.join('upgrade', 'current.py')
+        migration_tpl_path = os.path.join('upgrade', 'current.py.tpl')
         if os.path.exists(migration_file_path):
             new_path = os.path.join('upgrade', '%s.py' % new_version)
             git('mv', migration_file_path, new_path)
             git('add', new_path)
+            if os.path.exists(migration_tpl_path):
+                git('cp', migration_tpl_path, migration_file_path)
+                git('add', migration_file_path)
         message = '[BUMP] version %s' % new_version
         git('add', 'VERSION.txt')
         git('commit', '-m', message)
