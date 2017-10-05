@@ -27,10 +27,11 @@ setup(
     long_description=open('README.md').read(),
     install_requires=[
         r.strip() for r in open('requirement.txt').read().splitlines() ],
-    entry_points="""
-    [console_scripts]
-    ak=ak.main:main
-    """,
+    entry_points={
+        'console_scripts': [
+            'ak=ak.main:main'
+        ]
+    },
     include_package_data=True,
     packages = find_packages() + ['ak'],
     zip_safe=False,
