@@ -23,11 +23,17 @@ class AkInit(AkSub):
        print "init project"
        print """
        propose de selectionner une majeur ?
-       pipenv --two
-       pip install nightly.odoo.com
-       add odoo addons dans le Pipfile
-       """
+       export WORKON_HOME=`pwd`
+       git init # -> si ya deja un init, on dit que le projet a deja ete initie
+       wget https://raw.githubusercontent.com/odoo/odoo/10.0/requirements.txt
+       pipenv install
+       pipenv http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
+       pipenv install odoo
+       #add odoo addons dans le Pipfile
 
+       export ODOO_RC='/workspace/odoo_base.cfg' # project wide
+
+       """
 
 
 
@@ -52,12 +58,10 @@ class AkBuild(AkBuildFreeze):
     "Build dependencies for odoo"
 
     def main(self, *args):
-        if not os.path.exists('bin/buildout'):
-            self.download_and_install()
-        params = ['-c', self.config]
-        if self.offline:
-            params.append('-o')
-        self._exec('bin/buildout', params)
+        test = 'pipenv graph | grep "^odoo==" -c'
+        if not test:
+            raise Exception("Odoo project no init")
+        self._exec('pipenv', ['install'])
 
 
 @Ak.subcommand("freeze")
@@ -66,6 +70,6 @@ class AkFreeze(AkBuildFreeze):
 
     def main(self):
         self._exec(
-            'bin/buildout',
-            ['-c', self.config, '-o', 'openerp:freeze-to=frozen.cfg'])
+            'pipenv',
+            ['lock'])
 

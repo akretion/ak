@@ -25,15 +25,16 @@ class AkRun(AkSub):
         return super(AkRun, self)._parse_args(argv)
 
     def main(self):
-        return self._exec('odoo', self.argv)
+        local['ODOO_RC'] = 'odoo_base.cfg'
+        return self._exec('pipenv run odoo', self.argv)
 
 
 @Ak.subcommand("console")
 class AkConsole(AkSub):
-    """Start a python console."""
+    """Start a python console."""   
 
     def main(self):
-        return self._exec('bin/python_openerp')
+        return self._exec('pipenv run odoo')
 
 
 @Ak.subcommand("upgrade")

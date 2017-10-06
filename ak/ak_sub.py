@@ -20,6 +20,8 @@ WORKSPACE = '/workspace'
 class AkSub(cli.Application):
 
     def _exec(self, *args, **kwargs):
+        local.env['WORKON_HOME'] = WORKSPACE
+        local.cwd.chdir(WORKSPACE)
         return self.parent._exec(*args, **kwargs)
     
 
