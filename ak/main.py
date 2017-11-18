@@ -2,6 +2,7 @@
 # coding: utf-8
 """AK."""
 import logging
+import subprocess
 
 from plumbum import cli, local
 from plumbum.cmd import (
@@ -101,8 +102,20 @@ class AkRun(AkSub):
         return super(AkRun, self)._parse_args(argv)
 
     def main(self):
-        return self._exec('bin/start_openerp', self.argv)
 
+        try:
+            result = subprocess.check_output(['psql', 'postgres', '-c', """
+SELECT d.datname as "Name",
+pg_catalog.pg_get_userbyid(d.datdba) as "Owner"
+FROM pg_catalog.pg_database d
+WHERE d.datname = 'db'
+ORDER BY 1;"""])
+            if 'postgres' in result:
+                subprocess.Popen(['psql', 'postgres', '-c',
+                                  "alter database db owner to odoo;"])
+        except:
+            print("attempt to check and possibly fix db owner failed")
+        return self._exec('bin/start_openerp', self.argv)
 
 @Ak.subcommand("console")
 class AkConsole(AkSub):
