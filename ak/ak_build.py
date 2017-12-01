@@ -24,11 +24,13 @@ class AkInit(AkSub):
        print """
        propose de selectionner une majeur ?
        export WORKON_HOME=`pwd`
-       git init # -> si ya deja un init, on dit que le projet a deja ete initie
+       if requirements or pipfile exit
+       echo 'workspace-*' >> .gitignore
        wget https://raw.githubusercontent.com/odoo/odoo/10.0/requirements.txt
        pipenv install
-       pipenv http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
-       pipenv install odoo
+       pipenv install http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
+       git add requirements.txt
+       git add Pipfile
        #add odoo addons dans le Pipfile
 
        export ODOO_RC='/workspace/odoo_base.cfg' # project wide

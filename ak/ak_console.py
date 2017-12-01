@@ -25,8 +25,8 @@ class AkRun(AkSub):
         return super(AkRun, self)._parse_args(argv)
 
     def main(self):
-        local['ODOO_RC'] = 'odoo_base.cfg'
-        return self._exec('pipenv run odoo', self.argv)
+        local['ODOO_RC'] = 'project/odoo.cfg'
+        return self._exec('venv/bin/odoo -c default.cfg', self.argv)
 
 
 @Ak.subcommand("console")
