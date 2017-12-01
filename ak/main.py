@@ -13,7 +13,7 @@ from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 
-__version__ = '1.5.1'
+__version__ = '1.5.2'
 
 BUILDOUT_FILE = "buildout.%s.cfg"
 WORKSPACE = '/workspace/'
