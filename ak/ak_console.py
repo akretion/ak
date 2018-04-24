@@ -9,7 +9,7 @@ from plumbum.cmd import (
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
 import os
-import ConfigParser
+import configparser
 
 from plumbum.commands.base import BaseCommand
 

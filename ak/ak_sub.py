@@ -9,7 +9,7 @@ from plumbum.cmd import (
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
 import os
-import ConfigParser
+import configparser
 
 from plumbum.commands.base import BaseCommand
 
@@ -54,8 +54,8 @@ class Ak(cli.Application):
 
     def main(self, *args):
         if args:
-            print "Unkown command %r" % (args[0],)
+            print ("Unkown command %r", args[0])
             return 1  # return error
         if not self.nested_command:
-            print "No command given"
+            print("No command given")
             return 1
