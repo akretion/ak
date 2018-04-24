@@ -2,9 +2,12 @@
 from plumbum import local
 from plumbum.commands.modifiers import FG, TF
 
+import yaml
+
 """We ensure ak build spec.yaml will generate a correct repos.yaml ."""
 ak = local['ak']
 cmp = local['cmp']
+cp = local['cp']
 
 test = '/tests/build/'
 repos = local.cwd + test + 'repos.yaml'
@@ -15,8 +18,13 @@ def build_and_cmp(name, target):
     with local.tempdir() as tmp:
         with local.cwd(tmp):
             # local['cp'][target][name]()
-            ak['build']['--fileonly'][source] & FG
-            assert cmp[target][name] & TF
+            cp[source]['spec.yaml']()
+            assert ak['build']['--fileonly'] & TF
+            local['cat']['repo.yaml'] & FG
+
+            ytarget = yaml.load(open(target).read())
+            ysource = yaml.load(open('repo.yaml').read())
+            assert ytarget == ysource
 
 
 def test_no_changes():
