@@ -23,7 +23,7 @@ class AkSub(cli.Application):
         local.env['WORKON_HOME'] = WORKSPACE
         local.cwd.chdir(WORKSPACE)
         return self.parent._exec(*args, **kwargs)
-    
+
 
 class Ak(cli.Application):
     PROGNAME = "ak"

@@ -21,6 +21,15 @@ MODULE_FOLDER = WORKSPACE + 'parts/'
 ENV = os.environ.get('AK_ENV', 'dev')
 UPGRADE_LOG_DIR = 'upgrade-log'
 
+# Hack to show the cmd line execute with plumbum
+base_call = BaseCommand.__call__
+
+def custom_call(self, *args, **kwargs):
+    logging.info("%s, %s", self, args)
+    return base_call(self, *args, **kwargs)
+
+BaseCommand.__call__ = custom_call
+
 
 def main():
     Ak.run()

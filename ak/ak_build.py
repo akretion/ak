@@ -9,8 +9,7 @@ from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
 import os
 import ConfigParser
-
-from plumbum.commands.base import BaseCommand
+import yaml
 
 from .ak_sub import AkSub, Ak
 
@@ -46,24 +45,54 @@ class AkBuildFreeze(AkSub):
 
     def __init__(self, *args, **kwargs):
         super(AkBuildFreeze, self).__init__(*args, **kwargs)
-        if not self.config:
-            buildout_file_path = os.path.join(WORKSPACE, BUILDOUT_FILE % ENV)
-            if os.path.isfile(buildout_file_path):
-                self.config = buildout_file_path
-            else:
-                raise Exception(
-                    "Missing buildout config file, %s" % buildout_file_path)
+        if not local.path('spec.yaml').exists():
+            raise Exception("File spec.yaml is missing")
+        else:
+            self.config = yaml.load(open('spec.yaml').read())
 
 
 @Ak.subcommand("build")
 class AkBuild(AkBuildFreeze):
     "Build dependencies for odoo"
 
+    fileonly = cli.Flag(
+        '--fileonly', help="Just generate the repo.yaml", group="IO")
+
+    def _convert_repo(self, repo):
+        if repo.get('remotes'):
+            repo.pop('modules', None)
+            return repo
+        else:
+            src = repo['src'].split(' ')
+            if len(src) == 2:
+                src, branch = src
+                commit = None
+            elif len(src) == 3:
+                src, branch, commit = src
+            else:
+                raise Exception(
+                    'Src must be in the format'
+                    'http://github.com/oca/server-tools 10.0 <optional sha>')
+            return {
+                'remotes': {'src': src},
+                'merges': ['src %s' % (commit or branch)],
+                'target': 'src fake'
+                }
+
+    def _generate_repo_yaml(self):
+        repo_conf = {}
+        for key in self.config:
+            repo_conf[key] = self._convert_repo(self.config[key])
+        data = yaml.dump(repo_conf)
+        output = open('repo.yaml', 'w')
+        output.write(data)
+        output.close()
+
     def main(self, *args):
-        test = 'pipenv graph | grep "^odoo==" -c'
-        if not test:
-            raise Exception("Odoo project no init")
-        self._exec('pipenv', ['install'])
+        self._generate_repo_yaml()
+        if not self.fileonly:
+            with local.cwd('external-src'):
+                local['gitaggregate']['-c', '../repo.yaml'] & FG
 
 
 @Ak.subcommand("freeze")
