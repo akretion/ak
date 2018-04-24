@@ -61,12 +61,16 @@ class AkBuild(AkBuildFreeze):
     def _convert_repo(self, repo):
         if repo.get('remotes'):
             repo.pop('modules', None)
+            if not repo.get('target'):
+                repo['target'] = '%s fake' % repo['remotes'].keys()[0]
             return repo
         else:
             src = repo['src'].split(' ')
+            # case we have specify the url and the branch
             if len(src) == 2:
                 src, branch = src
                 commit = None
+            # case we have specify the url and the branch and the commit
             elif len(src) == 3:
                 src, branch, commit = src
             else:
