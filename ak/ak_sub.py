@@ -15,7 +15,7 @@ from plumbum.commands.base import BaseCommand
 
 __version__ = '1.5.1'
 ERP_CFG = 'odoo.cfg'
-WORKSPACE = '/workspace'
+WORKSPACE = '.'
 
 class AkSub(cli.Application):
 

@@ -1,6 +1,7 @@
 # coding: utf-8
 """AK."""
 import logging
+import kaptan
 
 from plumbum import cli, local
 from plumbum.cmd import (
@@ -12,6 +13,8 @@ import ConfigParser
 import yaml
 
 from .ak_sub import AkSub, Ak
+
+MODULE_FOLDER = 'modules'
 
 
 @Ak.subcommand("init")
@@ -104,3 +107,34 @@ class AkFreeze(AkBuildFreeze):
             'pipenv',
             ['lock'])
 
+
+@Ak.subcommand("link")
+class AkLink(AkSub):
+    "Link modules defined in repos.yml/yaml in modules folder"
+
+    def main(self, file=None, config=None):
+        # - read modules in yaml and dict by repo
+        # - iter on dict and create symbolic link
+        if not config:
+            config = kaptan.Kaptan(handler="yaml")
+            config.import_config(file or 'repos.yaml')
+        data = config.configuration_data
+        if data:
+            local['rm']('-rf', MODULE_FOLDER)
+            local['mkdir'](MODULE_FOLDER)
+        for key, vals in data.items():
+            if 'modules' in vals:
+                modules = extract_module_names(vals['modules'])
+                self._set_links(key, modules)
+
+    def _set_links(self, path, modules):
+        for module in modules:
+            src = '../%s/%s' % (path, module)
+            args = ['-s', src, MODULE_FOLDER]
+            local['ln'](args)
+
+
+def extract_module_names(modules):
+    if isinstance(modules, (str, unicode)):
+        return modules.split(' ')
+    return modules

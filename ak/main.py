@@ -16,7 +16,7 @@ from .ak_sub import AkSub, Ak
 __version__ = '1.5.2'
 
 BUILDOUT_FILE = "buildout.%s.cfg"
-WORKSPACE = '/workspace/'
+WORKSPACE = '.'
 MODULE_FOLDER = WORKSPACE + 'parts/'
 ENV = os.environ.get('AK_ENV', 'dev')
 UPGRADE_LOG_DIR = 'upgrade-log'
