@@ -1,0 +1,9 @@
+./product_attribute:
+    remotes:
+        oca: https://github.com/OCA/product-attribute.git
+    merges:
+        - oca 8.0
+    target: oca 8.0
+    modules: 
+        - product_custom_info
+        - product_profile
