@@ -14,6 +14,11 @@ import yaml
 from .ak_sub import AkSub, Ak
 
 
+REPO_YAML = 'repo.yaml'
+SPEC_YAML = 'spec.yaml'
+VENDOR_FOLDER = 'external-src'
+
+
 @Ak.subcommand("init")
 class AkInit(AkSub):
     "Build dependencies for odoo"
@@ -43,11 +48,11 @@ class AkBuild(AkSub):
     "Build dependencies for odoo"
 
     fileonly = cli.Flag(
-        '--fileonly', help="Just generate the repo.yaml", group="IO")
+        '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
     output = cli.SwitchAttr(
-        ["o", "output"], default="repo.yaml", help="Output file", group="IO")
+        ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
-        ["c", "config"], default="spec.yaml", help="Config file", group="IO")
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
     def _convert_repo(self, repo):
         if repo.get('remotes'):
@@ -62,7 +67,7 @@ class AkBuild(AkSub):
                 src, branch, commit = src
             else:
                 raise Exception(
-                    'Src must be in the format'
+                    'Src must be in the format '
                     'http://github.com/oca/server-tools 10.0 <optional sha>')
             return {
                 'remotes': {'src': src},
@@ -82,7 +87,7 @@ class AkBuild(AkSub):
     def main(self, *args):
         self._generate_repo_yaml()
         if not self.fileonly:
-            with local.cwd('external-src'):
+            with local.cwd(VENDOR_FOLDER):
                 local['gitaggregate']['-c', '../' + self.output] & FG
 
 
@@ -94,4 +99,3 @@ class AkFreeze(AkSub):
         self._exec(
             'pipenv',
             ['lock'])
-
