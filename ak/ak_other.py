@@ -1,17 +1,12 @@
-# coding: utf-8
 """AK."""
-import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql,
-    dropdb, pg_restore, pg_dump, git, wget, python)
-from plumbum.commands.modifiers import FG, TF, BG, RETCODE
+     createdb, psql,
+     dropdb, pg_restore, pg_dump, git)
+from plumbum.commands.modifiers import TF, BG
 from datetime import datetime
 import os
-import configparser
-
-from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 

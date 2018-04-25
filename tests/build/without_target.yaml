@@ -1,5 +1,5 @@
 ./product_attribute:
     remotes:
-        oca: https://github.com/OCA/product-attribute.git
+        src: https://github.com/OCA/product-attribute.git
     merges:
-        - oca 8.0
+        - src 8.0
