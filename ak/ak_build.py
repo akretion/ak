@@ -4,6 +4,7 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
+    mkdir, ls, find, ln,
     gunzip, git, wget, python)
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
@@ -111,23 +112,26 @@ class AkFreeze(AkSub):
 class AkLink(AkSub):
     "Link modules defined in repos.yml/yaml in modules folder"
 
+    config_spec = cli.SwitchAttr(
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+
     def main(self, file=None, config=None):
-        if self.config:
-            local['rm']('-rf', MODULE_FOLDER)
-            local['mkdir'](MODULE_FOLDER)
-        for key, vals in self.config.items():
-            if 'modules' in vals:
-                modules = extract_module_names(vals['modules'])
-                self._set_links(key, modules)
+        config = yaml.load(open(self.config_spec).read())
+        dest_path = local.path(MODULE_FOLDER)
 
-    def _set_links(self, path, modules):
+        self._clear_dir(dest_path)
+        for repo_path, repo in config.items():
+            modules = repo.pop('modules', [])
+            self._set_links(repo_path, modules, dest_path)
+
+    def _clear_dir(self, path):
+        "Create dir or remove links"
+        if not path.exists():
+            mkdir(path)
+        with local.cwd(path):
+            find['.']['-type', 'l']['-delete']()
+
+    def _set_links(self, repo_path, modules, dest_path):
         for module in modules:
-            src = '../%s/%s' % (path[2:], module)
-            arguments = ['-s', src, MODULE_FOLDER]
-            local['ln'](arguments)
-
-
-def extract_module_names(modules):
-    if isinstance(modules, (str, unicode)):
-        return modules.split(' ')
-    return modules
+            src = '../%s/%s' % (repo_path, module)
+            ln['-s', src, dest_path]()
