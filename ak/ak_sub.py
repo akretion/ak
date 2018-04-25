@@ -3,19 +3,13 @@
 import logging
 
 from plumbum import cli, local
-from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql,
-    dropdb, pg_restore, pg_dump, git, wget, python)
-from plumbum.commands.modifiers import FG, TF, BG, RETCODE
-from datetime import datetime
 import os
 import ConfigParser
 
-from plumbum.commands.base import BaseCommand
-
-__version__ = '1.5.1'
+__version__ = '2.0.0'
 ERP_CFG = 'odoo.cfg'
 WORKSPACE = '.'
+
 
 class AkSub(cli.Application):
 
