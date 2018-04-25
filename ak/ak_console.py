@@ -1,4 +1,3 @@
-# coding: utf-8
 """AK."""
 
 from .ak_sub import AkSub, Ak

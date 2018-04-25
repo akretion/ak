@@ -1,4 +1,3 @@
-# coding: utf-8
 """AK."""
 import logging
 
@@ -8,8 +7,10 @@ from plumbum.cmd import (
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
 import os
-import ConfigParser
 import yaml
+import configparser
+
+from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 
@@ -24,8 +25,8 @@ class AkInit(AkSub):
     "Build dependencies for odoo"
 
     def main(self, *args):
-       print "init project"
-       print """
+       print("init project")
+       print("""
        propose de selectionner une majeur ?
        export WORKON_HOME=`pwd`
        if requirements or pipfile exit
@@ -39,7 +40,7 @@ class AkInit(AkSub):
 
        export ODOO_RC='/workspace/odoo_base.cfg' # project wide
 
-       """
+       """)
 
 
 

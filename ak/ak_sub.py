@@ -4,7 +4,7 @@ import logging
 
 from plumbum import cli, local
 import os
-import ConfigParser
+import configparser
 
 __version__ = '2.0.0'
 ERP_CFG = 'odoo.cfg'
@@ -48,8 +48,8 @@ class Ak(cli.Application):
 
     def main(self, *args):
         if args:
-            print "Unkown command %r" % (args[0],)
+            print ("Unkown command %r", args[0])
             return 1  # return error
         if not self.nested_command:
-            print "No command given"
+            print("No command given")
             return 1

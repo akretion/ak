@@ -1,4 +1,3 @@
-# coding: utf-8
 """AK."""
 import logging
 
@@ -88,7 +87,7 @@ class AkDbLoad(AkSub):
                 dropdb(db)
                 createdb(db)
             else:
-                print "DB already exist, use --force to force loading"
+                print("DB already exist, use --force to force loading")
                 return
         else:
             logging.info('DB does ont exists. Create it')
@@ -137,4 +136,4 @@ class AkDbInfo(AkSub):
 
     def main(self):
         for ini_key, pg_key in self.parent.dbParams.iteritems():
-            print ini_key, local.env.get(pg_key, '')
+            print (ini_key, local.env.get(pg_key, ''))

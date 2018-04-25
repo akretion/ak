@@ -1,4 +1,3 @@
-# coding: utf-8
 """AK."""
 
 from plumbum import cli, local
@@ -86,18 +85,18 @@ class AkModuleSyntax(AkSub):
             else:
                 path = '/workspace/modules'
 
-        print "Launch flake8 and pylint tests on path : %s" % path
+        print("Launch flake8 and pylint tests on path : %s" % path)
 
         with local.cwd(path):
             travis_dir = local.env['MAINTAINER_QUALITY_TOOLS'] + '/travis/'
             flake8 = local[travis_dir + 'test_flake8'](retcode=None)
-            print flake8
+            print(flake8)
             with local.env(
                     TRAVIS_PULL_REQUEST="true",
                     TRAVIS_BRANCH="HEAD",
                     TRAVIS_BUILD_DIR='.'):
                 pylint = local[travis_dir + 'test_pylint'](retcode=None)
-                print pylint
+                print(pylint)
 
 
 @AkModule.subcommand("test")
@@ -145,13 +144,13 @@ class AkDiff(cli.Application):
             # for odoo
             if path.startswith(MODULE_FOLDER) and not\
                     path.endswith('openerp/addons'):
-                print "\n"
-                print "".ljust(100, '~')
-                print ("~~~ Scanning folder %s" % path).ljust(100, '~')
-                print "".ljust(100, '~')
+                print("\n")
+                print("".ljust(100, '~'))
+                print(("~~~ Scanning folder %s" % path).ljust(100, '~'))
+                print("".ljust(100, '~'))
                 with local.cwd(path):
                     status = git['status'](retcode=None)
-                    print status
+                    print(status)
 
 @AkModule.subcommand("diff")
 class AkDiff(AkSub):
@@ -163,7 +162,7 @@ class AkDiff(AkSub):
 
     def main(self, commit):
         if not local.path('.git').is_dir():
-            print "no git repository found"
+            print("no git repository found")
             return
         config = self.parent.parent.read_erp_config_file()
         db = config.get('options', 'db_name')
