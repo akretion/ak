@@ -77,9 +77,9 @@ class AkBuild(AkSub):
 
     def _generate_repo_yaml(self):
         repo_conf = {}
-        config = open(self.config_spec).read()
+        config = yaml.load(open(self.config).read())
         for key in config:
-            repo_conf[key] = self._convert_repo(self.config[key])
+            repo_conf[key] = self._convert_repo(config[key])
         data = yaml.dump(repo_conf)
         with open(self.output, 'w') as output:
             output.write(data)
