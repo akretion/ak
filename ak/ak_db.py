@@ -4,14 +4,9 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, pg_isready, createdb, psql,
-    dropdb, pg_restore, pg_dump, git, wget, python)
-from plumbum.commands.modifiers import FG, TF, BG, RETCODE
-from datetime import datetime
-import os
-import ConfigParser
-
-from plumbum.commands.base import BaseCommand
+    gunzip, createdb, psql,
+    dropdb, pg_restore, pg_dump)
+from plumbum.commands.modifiers import TF
 from .ak_sub import AkSub, Ak
 
 

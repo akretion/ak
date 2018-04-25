@@ -14,6 +14,11 @@ import yaml
 from .ak_sub import AkSub, Ak
 
 
+REPO_YAML = 'repo.yaml'
+SPEC_YAML = 'spec.yaml'
+VENDOR_FOLDER = 'external-src'
+
+
 @Ak.subcommand("init")
 class AkInit(AkSub):
     "Build dependencies for odoo"
@@ -38,25 +43,16 @@ class AkInit(AkSub):
 
 
 
-class AkBuildFreeze(AkSub):
-
-    config = cli.SwitchAttr(
-        ["c", "config"], help="Config flag")
-
-    def __init__(self, *args, **kwargs):
-        super(AkBuildFreeze, self).__init__(*args, **kwargs)
-        if not local.path('spec.yaml').exists():
-            raise Exception("File spec.yaml is missing")
-        else:
-            self.config = yaml.load(open('spec.yaml').read())
-
-
 @Ak.subcommand("build")
-class AkBuild(AkBuildFreeze):
+class AkBuild(AkSub):
     "Build dependencies for odoo"
 
     fileonly = cli.Flag(
-        '--fileonly', help="Just generate the repo.yaml", group="IO")
+        '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
+    output = cli.SwitchAttr(
+        ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
+    config = cli.SwitchAttr(
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
     def _convert_repo(self, repo):
         if repo.get('remotes'):
@@ -75,7 +71,7 @@ class AkBuild(AkBuildFreeze):
                 src, branch, commit = src
             else:
                 raise Exception(
-                    'Src must be in the format'
+                    'Src must be in the format '
                     'http://github.com/oca/server-tools 10.0 <optional sha>')
             return {
                 'remotes': {'src': src},
@@ -85,26 +81,25 @@ class AkBuild(AkBuildFreeze):
 
     def _generate_repo_yaml(self):
         repo_conf = {}
-        for key in self.config:
-            repo_conf[key] = self._convert_repo(self.config[key])
+        config = yaml.load(open(self.config).read())
+        for key in config:
+            repo_conf[key] = self._convert_repo(config[key])
         data = yaml.dump(repo_conf)
-        output = open('repo.yaml', 'w')
-        output.write(data)
-        output.close()
+        with open(self.output, 'w') as output:
+            output.write(data)
 
     def main(self, *args):
         self._generate_repo_yaml()
         if not self.fileonly:
-            with local.cwd('external-src'):
-                local['gitaggregate']['-c', '../repo.yaml'] & FG
+            with local.cwd(VENDOR_FOLDER):
+                local['gitaggregate']['-c', '../' + self.output] & FG
 
 
 @Ak.subcommand("freeze")
-class AkFreeze(AkBuildFreeze):
+class AkFreeze(AkSub):
     "Freeze dependencies for odoo"
 
     def main(self):
         self._exec(
             'pipenv',
             ['lock'])
-
