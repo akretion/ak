@@ -3,6 +3,7 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
+    mkdir, ls, find, ln,
     gunzip, git, wget, python)
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from datetime import datetime
@@ -13,6 +14,8 @@ import configparser
 from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
+
+MODULE_FOLDER = 'modules'
 
 
 REPO_YAML = 'repo.yaml'
@@ -104,3 +107,32 @@ class AkFreeze(AkSub):
         self._exec(
             'pipenv',
             ['lock'])
+
+
+@Ak.subcommand("link")
+class AkLink(AkSub):
+    "Link modules defined in repos.yml/yaml in modules folder"
+
+    config_spec = cli.SwitchAttr(
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+
+    def main(self, file=None, config=None):
+        config = yaml.load(open(self.config_spec).read())
+        dest_path = local.path(MODULE_FOLDER)
+
+        self._clear_dir(dest_path)
+        for repo_path, repo in config.items():
+            modules = repo.pop('modules', [])
+            self._set_links(repo_path, modules, dest_path)
+
+    def _clear_dir(self, path):
+        "Create dir or remove links"
+        if not path.exists():
+            mkdir(path)
+        with local.cwd(path):
+            find['.']['-type', 'l']['-delete']()
+
+    def _set_links(self, repo_path, modules, dest_path):
+        for module in modules:
+            src = '../%s/%s' % (repo_path, module)
+            ln['-s', src, dest_path]()
