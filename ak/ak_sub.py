@@ -6,7 +6,8 @@ from plumbum import cli, local
 import os
 import configparser
 
-__version__ = '2.0.0'
+__version__ = "2.0.0"
+
 ERP_CFG = 'odoo.cfg'
 WORKSPACE = '/workspace'
 
