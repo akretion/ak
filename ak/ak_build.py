@@ -63,6 +63,8 @@ class AkBuild(AkSub):
 
     fileonly = cli.Flag(
         '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
+    linksonly = cli.Flag(
+        '--linksonly', help="Generate links in %s" % MODULE_FOLDER, group="IO")
     output = cli.SwitchAttr(
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
@@ -124,6 +126,8 @@ class AkBuild(AkSub):
             ln['-s', src, dest_path]()
 
     def main(self, *args):
+        if self.linksonly:
+            return self._generate_links()
         self._generate_repo_yaml()
         if not self.fileonly:
             with local.cwd(VENDOR_FOLDER):
