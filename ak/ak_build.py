@@ -20,7 +20,18 @@ MODULE_FOLDER = 'modules'
 
 REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
+FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+
+
+def is_sha1(maybe_sha):
+    if len(maybe_sha) != 40:
+        return False
+    try:
+        sha_int = int(maybe_sha, 16)
+    except ValueError:
+        return False
+    return True
 
 
 @Ak.subcommand("init")
@@ -99,16 +110,6 @@ class AkBuild(AkSub):
                 local['gitaggregate']['-c', '../' + self.output] & FG
 
 
-@Ak.subcommand("freeze")
-class AkFreeze(AkSub):
-    "Freeze dependencies for odoo"
-
-    def main(self):
-        self._exec(
-            'pipenv',
-            ['lock'])
-
-
 @Ak.subcommand("link")
 class AkLink(AkSub):
     "Link modules defined in repos.yml/yaml in modules folder"
@@ -136,3 +137,47 @@ class AkLink(AkSub):
         for module in modules:
             src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
             ln['-s', src, dest_path]()
+
+
+@Ak.subcommand("freeze")
+class AkFreeze(AkSub):
+    "Freeze dependencies for odoo in config file formated for git aggregator"
+
+    output = cli.SwitchAttr(
+        ["o", "output"], default=FROZEN_YAML, help="Output file", group="IO")
+    config = cli.SwitchAttr(
+        ["c", "config"], default=REPO_YAML, help="Config file", group="IO")
+
+    def find_branch_last_commit(self, remote, repo, branch):
+        with local.cwd(repo):
+            sha = git['rev-parse'][remote + '/' + branch]().strip()
+        return sha
+
+    def main(self, *args):
+        if not os.path.isfile(self.config):
+            raise Exception(
+                "Missing yaml config file %s" % self.config)
+        # TODO implement method to check config file format is good (should
+        # probably call git aggregator get_repos method)
+
+        # Do not use load_config from git aggregator for now as it modify the
+        # yaml file a lot Which is not good, because we want to re-create it
+        # after
+        with open(self.config, 'r') as myfile:
+            conf = yaml.load(myfile)
+        for directory, repo_data in conf.items():
+            i = 0
+            for merge in repo_data.get('merges'):
+                parts = merge.split(' ')
+                # branch is already frozen with commit
+                if is_sha1(parts[1]):
+                    i += 1
+                    continue
+                else:
+                    sha = self.find_branch_last_commit(parts[0],
+                                                       directory, parts[1])
+                    parts[1] = sha
+                    repo_data.get('merges')[i] = ' '.join(parts)
+                    i -= 1
+        with open(self.output, 'w') as outfile:
+            yaml.dump(conf, outfile, default_flow_style=False)
