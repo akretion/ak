@@ -134,5 +134,5 @@ class AkLink(AkSub):
 
     def _set_links(self, repo_path, modules, dest_path):
         for module in modules:
-            src = '../%s/%s' % (repo_path, module)
+            src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
             ln['-s', src, dest_path]()
