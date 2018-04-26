@@ -28,7 +28,7 @@ def is_sha1(maybe_sha):
     if len(maybe_sha) != 40:
         return False
     try:
-        sha_int = int(maybe_sha, 16)
+        int(maybe_sha, 16)
     except ValueError:
         return False
     return True
@@ -39,23 +39,22 @@ class AkInit(AkSub):
     "Build dependencies for odoo"
 
     def main(self, *args):
-       print("init project")
-       print("""
-       propose de selectionner une majeur ?
-       export WORKON_HOME=`pwd`
-       if requirements or pipfile exit
-       echo 'workspace-*' >> .gitignore
-       wget https://raw.githubusercontent.com/odoo/odoo/10.0/requirements.txt
-       pipenv install
-       pipenv install http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
-       git add requirements.txt
-       git add Pipfile
-       #add odoo addons dans le Pipfile
+        print("init project")
+        print("""
+        propose de selectionner une majeur ?
+        export WORKON_HOME=`pwd`
+        if requirements or pipfile exit
+        echo 'workspace-*' >> .gitignore
+        wget https://raw.githubusercontent.com/odoo/odoo/10.0/requirements.txt
+        pipenv install
+        pipenv install http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
+        git add requirements.txt
+        git add Pipfile
+        #add odoo addons dans le Pipfile
 
-       export ODOO_RC='/workspace/odoo_base.cfg' # project wide
+        export ODOO_RC='/workspace/odoo_base.cfg' # project wide
 
-       """)
-
+        """)
 
 
 @Ak.subcommand("build")
@@ -103,26 +102,12 @@ class AkBuild(AkSub):
         with open(self.output, 'w') as output:
             output.write(data)
 
-    def main(self, *args):
-        self._generate_repo_yaml()
-        if not self.fileonly:
-            with local.cwd(VENDOR_FOLDER):
-                local['gitaggregate']['-c', '../' + self.output] & FG
-
-
-@Ak.subcommand("link")
-class AkLink(AkSub):
-    "Link modules defined in repos.yml/yaml in modules folder"
-
-    config_spec = cli.SwitchAttr(
-        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
-
-    def main(self, file=None, config=None):
-        config = yaml.load(open(self.config_spec).read())
+    def _generate_links(self):
+        "Link modules defined in repos.yml/yaml in modules folder"
+        spec = yaml.load(open(self.config).read())
         dest_path = local.path(MODULE_FOLDER)
-
         self._clear_dir(dest_path)
-        for repo_path, repo in config.items():
+        for repo_path, repo in spec.items():
             modules = repo.pop('modules', [])
             self._set_links(repo_path, modules, dest_path)
 
@@ -137,6 +122,13 @@ class AkLink(AkSub):
         for module in modules:
             src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
             ln['-s', src, dest_path]()
+
+    def main(self, *args):
+        self._generate_repo_yaml()
+        if not self.fileonly:
+            with local.cwd(VENDOR_FOLDER):
+                local['gitaggregate']['-c', '../' + self.output] & FG
+        self._generate_links()
 
 
 @Ak.subcommand("freeze")
