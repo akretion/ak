@@ -38,7 +38,7 @@ class Ak(cli.Application):
             config_path = WORKSPACE + ERP_CFG
         else:
             raise Exception("Missing ERP config file %s" % ERP_CFG)
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.readfp(open(config_path))
         return config
 
