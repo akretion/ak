@@ -5,11 +5,9 @@ import yaml
 from plumbum import cli
 
 from .ak_sub import AkSub, Ak
-from .ak_build import SPEC_YAML
+from .ak_build import SPEC_YAML, BUILDOUT_SRC
 
 logger = logging.getLogger(__name__)
-
-BUILDOUT_SRC = './buildout.cfg'
 
 
 @Ak.subcommand("migrate")

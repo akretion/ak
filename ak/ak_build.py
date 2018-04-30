@@ -1,5 +1,6 @@
 """AK."""
 import logging
+from pathlib import Path
 
 from plumbum import cli, local
 from plumbum.cmd import (
@@ -22,6 +23,9 @@ REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
 FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+BUILDOUT_SRC = './buildout.cfg'
+
+logger = logging.getLogger(__name__)
 
 
 def is_sha1(maybe_sha):
@@ -38,8 +42,27 @@ def is_sha1(maybe_sha):
 class AkInit(AkSub):
     "Build dependencies for odoo"
 
+    @staticmethod
+    def _warning_spec():
+        logger.warning("""
+Missing '%s' file in this folder: aborted operation !
+
+Consider to manually create one like this:
+--------
+
+./myfolder:
+    modules: []
+    src: https://github.com/OCA/myrepo 12.0
+
+--------
+
+Or if you want migrate from buildout, just put your buildout.cfg file here
+and trigger: ak migrate""" % SPEC_YAML)
+
     def main(self, *args):
         print("init project")
+        if not Path(SPEC_YAML).is_file():
+            self._warning_spec()
         print("""
         propose de selectionner une majeur ?
         export WORKON_HOME=`pwd`
@@ -126,6 +149,8 @@ class AkBuild(AkSub):
             ln['-s', src, dest_path]()
 
     def main(self, *args):
+        if not Path(SPEC_YAML).is_file():
+            return AkInit._warning_spec()
         if self.linksonly:
             return self._generate_links()
         self._generate_repo_yaml()
