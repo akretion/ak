@@ -56,7 +56,7 @@ Consider to manually create one like this:
 
 --------
 
-Or if you want migrate from buildout, just put your buildout.cfg file here
+Or if you want to migrate from buildout, just put your buildout.cfg file here
 and trigger: ak migrate""" % SPEC_YAML)
 
     def main(self, *args):
