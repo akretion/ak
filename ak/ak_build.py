@@ -16,7 +16,7 @@ from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 
-MODULE_FOLDER = 'modules'
+MODULE_FOLDER = 'module_links'
 
 
 REPO_YAML = 'repo.yaml'
@@ -148,9 +148,23 @@ class AkBuild(AkSub):
             src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
             ln['-s', src, dest_path]()
 
+    def _print_addons_path(self):
+        spec = yaml.load(open(self.config).read())
+        paths = []
+        current_folder = os.getcwd()
+        for repo_path, repo in spec.items():
+            if not repo.get('modules'):
+                paths.append(repo_path.replace('./', ''))
+        addons_path = ','.join(['%s/%s/%s' % (current_folder, VENDOR_FOLDER, x)
+                                for x in paths])
+        addons_path = '%s/%s,%s' % (current_folder, MODULE_FOLDER, addons_path)
+        print('Addons path for your config file: ', addons_path)
+        return addons_path
+
     def main(self, *args):
         if not Path(SPEC_YAML).is_file():
             return AkInit._warning_spec()
+        self._print_addons_path()
         if self.linksonly:
             return self._generate_links()
         self._generate_repo_yaml()
