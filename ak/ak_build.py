@@ -131,17 +131,19 @@ class AkBuild(AkSub):
         "Link modules defined in repos.yml/yaml in modules folder"
         spec = yaml.load(open(self.config).read())
         dest_path = local.path(MODULE_FOLDER)
-        self._clear_dir(dest_path)
+        self._update_dir(VENDOR_FOLDER)
+        self._update_dir(dest_path, clear_dir=True)
         for repo_path, repo in spec.items():
             modules = repo.pop('modules', [])
             self._set_links(repo_path, modules, dest_path)
 
-    def _clear_dir(self, path):
+    def _update_dir(self, path, clear_dir=False):
         "Create dir or remove links"
         if not path.exists():
             mkdir(path)
-        with local.cwd(path):
-            find['.']['-type', 'l']['-delete']()
+        if clear_dir:
+            with local.cwd(path):
+                find['.']['-type', 'l']['-delete']()
 
     def _set_links(self, repo_path, modules, dest_path):
         for module in modules:
