@@ -135,8 +135,6 @@ class AkBuild(AkSub):
         "Link modules defined in repos.yml/yaml in modules folder"
         spec = yaml.load(open(self.config).read())
         dest_path = local.path(MODULE_FOLDER)
-        self._update_dir(local.path(VENDOR_FOLDER))
-        self._update_dir(dest_path, clear_dir=True)
         for repo_path, repo in spec.items():
             modules = repo.pop('modules', [])
             self._set_links(repo_path, modules, dest_path)
@@ -167,9 +165,14 @@ class AkBuild(AkSub):
         print('Addons path for your config file: ', addons_path)
         return addons_path
 
+    def _ensure_viable_installation(self):
+        self._update_dir(local.path(VENDOR_FOLDER))
+        self._update_dir(local.path(MODULE_FOLDER), clear_dir=True)
+
     def main(self, *args):
         if not Path(SPEC_YAML).is_file():
             return AkInit._warning_spec()
+        self._ensure_viable_installation()
         self._print_addons_path()
         if self.linksonly:
             return self._generate_links()
