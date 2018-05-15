@@ -4,7 +4,10 @@ import logging
 
 from plumbum import cli, local
 import os
-import configparser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 __version__ = "2.0.0"
 
