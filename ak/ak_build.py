@@ -135,7 +135,7 @@ class AkBuild(AkSub):
         "Link modules defined in repos.yml/yaml in modules folder"
         spec = yaml.load(open(self.config).read())
         dest_path = local.path(MODULE_FOLDER)
-        self._update_dir(VENDOR_FOLDER)
+        self._update_dir(local.path(VENDOR_FOLDER))
         self._update_dir(dest_path, clear_dir=True)
         for repo_path, repo in spec.items():
             modules = repo.pop('modules', [])
