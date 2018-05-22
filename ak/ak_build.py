@@ -20,7 +20,7 @@ from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 
-MODULE_FOLDER = 'module_links'
+MODULE_FOLDER = 'links'
 
 
 REPO_YAML = 'repo.yaml'
@@ -90,8 +90,8 @@ class AkBuild(AkSub):
 
     fileonly = cli.Flag(
         '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
-    linksonly = cli.Flag(
-        '--linksonly', help="Generate links in %s" % MODULE_FOLDER, group="IO")
+    links = cli.Flag(
+        '--links', help="Generate links in %s" % MODULE_FOLDER, group="IO")
     output = cli.SwitchAttr(
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
@@ -174,7 +174,7 @@ class AkBuild(AkSub):
             return AkInit._warning_spec()
         self._ensure_viable_installation()
         self._print_addons_path()
-        if self.linksonly:
+        if self.links:
             return self._generate_links()
         self._generate_repo_yaml()
         if not self.fileonly:
