@@ -180,6 +180,7 @@ class AkBuild(AkSub):
         if not self.fileonly:
             with local.cwd(VENDOR_FOLDER):
                 local['gitaggregate']['-c', '../' + self.output] & FG
+            self._print_addons_path()
         self._generate_links()
 
 
