@@ -1,7 +1,6 @@
 """AK."""
 import logging
 from pathlib import Path
-
 from plumbum import cli, local
 from plumbum.cmd import (
     mkdir, ls, find, ln,
@@ -20,7 +19,7 @@ from plumbum.commands.base import BaseCommand
 
 from .ak_sub import AkSub, Ak
 
-MODULE_FOLDER = 'links'
+LINK_FOLDER = 'links'
 
 
 REPO_YAML = 'repo.yaml'
@@ -91,7 +90,7 @@ class AkBuild(AkSub):
     fileonly = cli.Flag(
         '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
     links = cli.Flag(
-        '--links', help="Generate links in %s" % MODULE_FOLDER, group="IO")
+        '--links', help="Generate links in %s" % LINK_FOLDER, group="IO")
     output = cli.SwitchAttr(
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
@@ -134,7 +133,7 @@ class AkBuild(AkSub):
     def _generate_links(self):
         "Link modules defined in repos.yml/yaml in modules folder"
         spec = yaml.load(open(self.config).read())
-        dest_path = local.path(MODULE_FOLDER)
+        dest_path = local.path(LINK_FOLDER)
         for repo_path, repo in spec.items():
             modules = repo.pop('modules', [])
             self._set_links(repo_path, modules, dest_path)
@@ -156,18 +155,25 @@ class AkBuild(AkSub):
         spec = yaml.load(open(self.config).read())
         paths = []
         current_folder = os.getcwd()
+        odoo_folder = False
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
-                paths.append(repo_path.replace('./', ''))
+                if 'odoo' in repo_path:
+                    # When odoo, we need to add 2 path
+                    odoo_folder = True
+                else:
+                    paths.append(repo_path.replace('./', ''))
+        if odoo_folder:
+            paths = ['odoo/odoo/addons', 'odoo/addons'] + paths
         addons_path = ','.join(['%s/%s/%s' % (current_folder, VENDOR_FOLDER, x)
                                 for x in paths])
-        addons_path = '%s/%s,%s' % (current_folder, MODULE_FOLDER, addons_path)
+        addons_path = '%s/%s,%s' % (current_folder, LINK_FOLDER, addons_path)
         print('Addons path for your config file: ', addons_path)
         return addons_path
 
     def _ensure_viable_installation(self):
         self._update_dir(local.path(VENDOR_FOLDER))
-        self._update_dir(local.path(MODULE_FOLDER), clear_dir=True)
+        self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
 
     def main(self, *args):
         if not Path(SPEC_YAML).is_file():
