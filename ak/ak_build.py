@@ -158,7 +158,7 @@ class AkBuild(AkSub):
         odoo_folder = False
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
-                if 'odoo' in repo_path:
+                if './odoo' == repo_path:
                     # When odoo, we need to add 2 path
                     odoo_folder = True
                 else:
