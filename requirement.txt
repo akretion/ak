@@ -1,4 +1,4 @@
 plumbum == 1.6.1.post0
-PyYAML == 3.12
+PyYAML == 3.13
 git-aggregator
 pathlib

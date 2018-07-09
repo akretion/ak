@@ -43,11 +43,13 @@ class AkDb(AkSub):
 
         config = self.parent.read_erp_config_file()
         for ini_key, pg_key in self.dbParams.iteritems():
-            val = config.get('options', ini_key)
-            if not val == "False":
-                logging.info('Set %s to %s' % (pg_key, val))
-                local.env[pg_key] = val
-
+            try:
+                val = config.get('options', ini_key)
+                if not val == "False":
+                    logging.info('Set %s to %s' % (pg_key, val))
+                    local.env[pg_key] = val
+            except:
+                logging.debug("Not key for %s", ini_key)
         if self.db:  # if db is forced by flag
             logging.info("PGDATABASE overwitten by %s", self.db)
             local.env["PGDATABASE"] = self.db

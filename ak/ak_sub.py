@@ -11,7 +11,7 @@ except ImportError:
 
 __version__ = "2.0.0"
 
-ERP_CFG = 'odoo.cfg'
+ERP_CFG = local.env.get('ERP_CFG_PATH', 'odoo.cfg')
 WORKSPACE = '.'
 
 
