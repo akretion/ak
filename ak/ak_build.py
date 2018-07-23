@@ -100,7 +100,7 @@ class AkBuild(AkSub):
         if repo.get('remotes'):
             repo.pop('modules', None)
             if not repo.get('target'):
-                repo['target'] = '%s fake' % repo['remotes'].keys()[0]
+                repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
             return repo
         else:
             src = repo['src'].split(' ')
