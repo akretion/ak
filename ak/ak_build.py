@@ -116,16 +116,20 @@ class AkBuild(AkSub):
                     'Src must be in the format '
                     'http://github.com/oca/server-tools 10.0 <optional sha>')
             return {
-                'remotes': {'src': src},
-                'merges': ['src %s' % (commit or branch)],
-                'target': 'src fake'
+                'remotes': {'origin': src},
+                'merges': ['origin %s' % (commit or branch)],
+                'target': 'origin %s' % branch,
                 }
 
     def _generate_repo_yaml(self):
         repo_conf = {}
         config = yaml.load(open(self.config).read())
         for key in config:
-            repo_conf[key] = self._convert_repo(config[key])
+            if key == 'odoo':
+                repo_key = 'src'
+            else:
+                repo_key = VENDOR_FOLDER + u'/' + key
+            repo_conf[repo_key] = self._convert_repo(config[key])
         data = yaml.dump(repo_conf)
         with open(self.output, 'w') as output:
             output.write(data)
@@ -182,10 +186,14 @@ class AkBuild(AkSub):
         self._print_addons_path()
         if self.links:
             return self._generate_links()
-        self._generate_repo_yaml()
+        if Path(FROZEN_YAML).is_file():
+            config_file = FROZEN_YAML
+            print("Frozen file exist use it for building the project")
+        else:
+            self._generate_repo_yaml()
+            config_file = self.output
         if not self.fileonly:
-            with local.cwd(VENDOR_FOLDER):
-                local['gitaggregate']['-c', '../' + self.output] & FG
+            local['gitaggregate']['-c', config_file] & FG
             self._print_addons_path()
         self._generate_links()
 
