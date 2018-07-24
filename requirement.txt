@@ -1,4 +1,5 @@
-plumbum == 1.6.1.post0
-PyYAML == 3.13
-git-aggregator
+plumbum >= 1.6.6
+git-aggregator >= 1.2.1
+kaptan==0.5.10
+PyYAML==3.13
 pathlib
