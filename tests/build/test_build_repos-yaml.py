@@ -12,7 +12,6 @@ cp = local['cp']
 test = '/tests/build/'
 repos = local.cwd + test + 'repos.yaml'
 
-
 def build_and_cmp(name, target):
     source = local.cwd + test + name
     with local.tempdir() as tmp:
@@ -36,7 +35,7 @@ def test_no_changes():
 def test_without_target():
     """Ensure target can be reconstructed."""
     name = 'without_target.yaml'
-    build_and_cmp(name, repos)
+    build_and_cmp(name, repos.replace('.yaml', '_merged.yaml'))
 
 
 def test_with_modules():

@@ -119,18 +119,23 @@ class AkBuild(AkSub):
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
-                }
+            }
 
     def _generate_repo_yaml(self):
         repo_conf = {}
-        config = yaml.load(open(self.config).read())
+        config = yaml.safe_load(open(self.config).read())
         for key in config:
             if key == 'odoo':
-                repo_key = 'src'
+                # put odoo in a different directory
+                repo_key = ODOO_FOLDER
+            elif key[0:2] == './':
+                # if prefixed with ./ don't change the path
+                repo_key = key
             else:
-                repo_key = VENDOR_FOLDER + u'/' + key
+                # put sources in VENDOR_FOLDERS
+                repo_key = u'./%s/%s' % (VENDOR_FOLDER, key)
             repo_conf[repo_key] = self._convert_repo(config[key])
-        data = yaml.dump(repo_conf)
+        data = yaml.safe_dump(repo_conf)
         with open(self.output, 'w') as output:
             output.write(data)
 
@@ -180,26 +185,24 @@ class AkBuild(AkSub):
         self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
 
     def main(self, *args):
-        if not Path(SPEC_YAML).is_file():
-            return AkInit._warning_spec()
-        self._ensure_viable_installation()
-        if self.links:
+        if self.linksonly:
+            self._ensure_viable_installation()
             return self._generate_links()
         config_file = self.config
+
         if self.config != SPEC_YAML:
             config_file = self.config
         elif Path(FROZEN_YAML).is_file():
             config_file = FROZEN_YAML
-            print("Frozen file exist use it for building the project")
+            logging.info("Frozen file exist use it for building the project")
 
-        if config_file == SPEC_YAML:
-            self._generate_repo_yaml()
-            self._generate_links()
-            config_file = self.output
+        self._ensure_viable_installation()
+        self._generate_repo_yaml()
+        self._generate_links()
+        config_file = self.output
         if not self.fileonly:
             local['gitaggregate']['-c', config_file] & FG
             self._print_addons_path(config_file)
-
 
 
 @Ak.subcommand("freeze")
