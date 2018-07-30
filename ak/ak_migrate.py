@@ -3,7 +3,6 @@ from pathlib import Path
 import logging
 import yaml
 from plumbum import cli, local
-from plumbum.cmd import psql
 import os
 
 from .ak_sub import AkSub, Ak
@@ -19,7 +18,8 @@ class AkMigrate(AkSub):
     withrevision = cli.Flag(
         '--withrevision', help="Include merge revisions lines", default=False)
     db = cli.SwitchAttr(
-        ["d", "database"], help="Populate modules variable from specified database")
+        ["d", "database"],
+        help="Populate modules variable from specified database")
 
     def main(self):
         if not Path(BUILDOUT_SRC).is_file():
@@ -45,14 +45,14 @@ class AkMigrate(AkSub):
 
     def _get_repo_installed_modules(self, modules, rel_path):
         with local.cwd(rel_path):
-            files =  os.listdir(os.getcwd())
+            files = os.listdir(os.getcwd())
             repo_modules = [m for m in files if m in modules]
             return repo_modules
 
     def _convert2dict(self, lines):
         data = []
         if self.db:
-            res_sql = psql(
+            res_sql = local['psql'](
                 self.db, "-c",
                 "SELECT name FROM ir_module_module WHERE state in "
                 "('installed', 'to upgrade')")
@@ -60,9 +60,9 @@ class AkMigrate(AkSub):
             modules = [m.strip()
                        for m in modules
                        if m.strip() != 'name' and
-                       '---' not in m.strip()
-                       and 'lignes)' not in m.strip()
-                       and m.strip()]
+                       '---' not in m.strip() and
+                       'lignes)' not in m.strip() and
+                       m.strip()]
         for line in lines:
             repo_modules = []
             subs = line.split()
@@ -77,7 +77,8 @@ class AkMigrate(AkSub):
                 'src': '%s %s' % (subs[0], subs[2]),
                 # Put a random char '-' so that yaml does not consider it as a
                 # list when dumping it and we can remove it at this end...
-                'modules': repo_modules and "-[%s]" % ','.join(repo_modules) or None
+                'modules': repo_modules and (
+                    "-[%s]" % ','.join(repo_modules) or None)
             }
             data.append({'./%s' % repo: node})
         return data
