@@ -155,8 +155,8 @@ class AkBuild(AkSub):
             src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
             ln['-s', src, dest_path]()
 
-    def _print_addons_path(self):
-        spec = yaml.load(open(self.config).read())
+    def _print_addons_path(self, config):
+        spec = yaml.load(open(config).read())
         paths = []
         current_folder = os.getcwd()
         odoo_folder = False
@@ -183,19 +183,23 @@ class AkBuild(AkSub):
         if not Path(SPEC_YAML).is_file():
             return AkInit._warning_spec()
         self._ensure_viable_installation()
-        self._print_addons_path()
         if self.links:
             return self._generate_links()
-        if Path(FROZEN_YAML).is_file():
+        config_file = self.config
+        if self.config != SPEC_YAML:
+            config_file = self.config
+        elif Path(FROZEN_YAML).is_file():
             config_file = FROZEN_YAML
             print("Frozen file exist use it for building the project")
-        else:
+
+        if config_file == SPEC_YAML:
             self._generate_repo_yaml()
+            self._generate_links()
             config_file = self.output
         if not self.fileonly:
             local['gitaggregate']['-c', config_file] & FG
-            self._print_addons_path()
-        self._generate_links()
+            self._print_addons_path(config_file)
+
 
 
 @Ak.subcommand("freeze")
