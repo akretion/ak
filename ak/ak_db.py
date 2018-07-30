@@ -3,8 +3,7 @@ import logging
 
 from plumbum import cli, local
 from plumbum.cmd import (
-    gunzip, createdb, psql,
-    dropdb, pg_restore, pg_dump)
+    gunzip)
 from plumbum.commands.modifiers import TF
 from .ak_sub import AkSub, Ak
 
@@ -77,6 +76,11 @@ class AkDbLoad(AkSub):
         :param force: db will be dropped before the load
         """
         p = local.path(dump_file)
+        psql = local['psql']
+        dropdb = local['dropdb']
+        createdb = local['createdb']
+        pg_restore = local['pg_restore']
+        pg_dump = local['pg_dump']
 
         if not p.is_file():
             raise Exception("input file not found")
@@ -124,6 +128,7 @@ class AkDbDump(AkSub):
         :param force: overwrite the file if exists
 
         """
+        pg_dump = local['pg_dump']
         output_name += '.dump'
         p = local.path(output_name)
 

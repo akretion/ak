@@ -1,9 +1,7 @@
 """AK."""
 
 from plumbum import cli, local
-from plumbum.cmd import (
-     createdb, psql,
-     dropdb, pg_restore, pg_dump, git)
+from plumbum.cmd import git
 from plumbum.commands.modifiers import TF, BG
 from datetime import datetime
 import os
@@ -110,6 +108,8 @@ class AkModuleTest(AkSub):
     db = cli.SwitchAttr(['d'], str, help="Database for the tests")
 
     def main(self, *args):
+        psql = local['psql']
+        createdb = local['createdb']
         params = []
         if self.db:
             db = self.db
@@ -161,6 +161,7 @@ class AkDiff(AkSub):
     """
 
     def main(self, commit):
+        psql = local['psql']
         if not local.path('.git').is_dir():
             print("no git repository found")
             return
