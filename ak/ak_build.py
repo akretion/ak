@@ -6,6 +6,7 @@ from plumbum.cmd import (
     mkdir, ls, find, ln,
     gunzip, git, wget, python)
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
+from plumbum.commands.base import BaseCommand
 from datetime import datetime
 import os
 import yaml
@@ -15,17 +16,14 @@ except ImportError:
     import ConfigParser as configparser
 
 
-from plumbum.commands.base import BaseCommand
-
 from .ak_sub import AkSub, Ak
-
-LINK_FOLDER = 'links'
 
 
 REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
 FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
 
@@ -40,33 +38,6 @@ def is_sha1(maybe_sha):
     except ValueError:
         return False
     return True
-
-
-@Ak.subcommand("init")
-class AkInit(AkSub):
-    "Build dependencies for odoo"
-
-    @staticmethod
-    def _warning_spec():
-        logger.warning("""
-Missing '%s' file in this folder: aborted operation !
-
-Consider to manually create one like this:
---------
-
-./myfolder:
-    modules: []
-    src: https://github.com/OCA/myrepo 12.0
-
---------
-
-Or if you want to migrate from buildout, just put your buildout.cfg file here
-and trigger: ak migrate""" % SPEC_YAML)
-
-    def main(self, *args):
-        print("init project")
-        if not Path(SPEC_YAML).is_file():
-            self._warning_spec()
 
 
 @Ak.subcommand("build")

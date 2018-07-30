@@ -22,7 +22,7 @@ setup(
     version=find_version("ak", "main.py"),
     author='Akretion',
     author_email='contact@akretion.com',
-    url='https://github.com/akretion/voodoo-cli/',
+    url='https://github.com/akretion/ak',
     description='simple cli for Odoo',
     license="AGPLv3+",
     long_description=open('README.md').read(),
