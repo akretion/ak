@@ -19,6 +19,7 @@ BaseCommand.__call__ = custom_call
 
 
 def main():
+    logging.basicConfig()
     Ak.run()
 
 

@@ -1,6 +1,6 @@
 ./product_attribute:
     remotes:
-        src: https://github.com/OCA/product-attribute.git
+        origin: https://github.com/OCA/product-attribute.git
     merges:
-        - src 8.0
-    target: src fake
+        - origin 8.0
+    target: origin 8.0
