@@ -26,6 +26,7 @@ REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
 FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
 
 logger = logging.getLogger(__name__)
@@ -66,21 +67,6 @@ and trigger: ak migrate""" % SPEC_YAML)
         print("init project")
         if not Path(SPEC_YAML).is_file():
             self._warning_spec()
-        print("""
-        propose de selectionner une majeur ?
-        export WORKON_HOME=`pwd`
-        if requirements or pipfile exit
-        echo 'workspace-*' >> .gitignore
-        wget https://raw.githubusercontent.com/odoo/odoo/10.0/requirements.txt
-        pipenv install
-        pipenv install http://nightly.odoo.com/10.0/nightly/src/odoo_10.0.latest.zip
-        git add requirements.txt
-        git add Pipfile
-        #add odoo addons dans le Pipfile
-
-        export ODOO_RC='/workspace/odoo_base.cfg' # project wide
-
-        """)
 
 
 @Ak.subcommand("build")
@@ -89,7 +75,7 @@ class AkBuild(AkSub):
 
     fileonly = cli.Flag(
         '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
-    links = cli.Flag(
+    linksonly = cli.Flag(
         '--links', help="Generate links in %s" % LINK_FOLDER, group="IO")
     output = cli.SwitchAttr(
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
@@ -148,11 +134,13 @@ class AkBuild(AkSub):
             self._set_links(repo_path, modules, dest_path)
 
     def _update_dir(self, path, clear_dir=False):
-        "Create dir or remove links"
+        "Create dir and remove links"
         if not path.exists():
+            logger.debug('mkdir %s' % path)
             mkdir(path)
         if clear_dir:
             with local.cwd(path):
+                logger.debug('rm all links from %s' % path)
                 find['.']['-type', 'l']['-delete']()
 
     def _set_links(self, repo_path, modules, dest_path):
