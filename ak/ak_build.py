@@ -122,21 +122,20 @@ class AkBuild(AkSub):
 
     def _print_addons_path(self, config):
         spec = yaml.load(open(config).read())
-        paths = []
-        odoo_folder = False
+        paths = [LINK_FOLDER, LOCAL_FOLDER]
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
-                if 'odoo' == repo_path:
+                if repo_path == 'odoo':
                     # When odoo, we need to add 2 path
-                    odoo_folder = True
+                    paths.append('%s/odoo/addons' % ODOO_FOLDER)
+                    paths.append('%s/addons' % ODOO_FOLDER)
+                elif repo_path[0:2] == './':
+                    paths.append(repo_path)  # don't touch relative paths
                 else:
                     # TODO Need to be delete when all spec.yaml files cleaned
-                    paths.append(repo_path.replace('./', ''))
-        addons_path = ','.join(['%s/%s' % (VENDOR_FOLDER, x) for x in paths])
-        addons_path = '%s,%s' % (LINK_FOLDER, addons_path)
-        addons_path = '%s,%s' % (LOCAL_FOLDER, addons_path)
-        if odoo_folder:
-            addons_path = 'src/odoo/addons,src/addons,%s' % addons_path
+                    paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
+
+        addons_path = ','.join(paths)
         print('Addons path for your config file: ', addons_path)
         return addons_path
 
