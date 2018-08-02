@@ -23,6 +23,7 @@ REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
 FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
@@ -133,6 +134,7 @@ class AkBuild(AkSub):
                     paths.append(repo_path.replace('./', ''))
         addons_path = ','.join(['%s/%s' % (VENDOR_FOLDER, x) for x in paths])
         addons_path = '%s,%s' % (LINK_FOLDER, addons_path)
+        addons_path = '%s,%s' % (LOCAL_FOLDER, addons_path)
         if odoo_folder:
             addons_path = 'src/odoo/addons,src/addons,%s' % addons_path
         print('Addons path for your config file: ', addons_path)
