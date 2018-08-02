@@ -1,0 +1,26 @@
+odoo:
+    src: https://github.com/oca/ocb.git 10.0
+    depth: 5
+
+product_attribute:
+    src: https://github.com/OCA/product-attribute.git 10.0
+    modules:
+        - product_custom_info
+        - product_profile
+    # will be in links
+
+l10n-france:
+    # if key is empty, it will end in the path
+    modules: []
+    src: https://github.com/oca/l10n-france 10.0
+
+social:
+    src: https://github.com/oca/social.git 10.0
+
+./manufacture:
+    # ./ should be in the path
+    src: https://github.com/oca/manufacture.git 10.0
+./server-tools:
+    # should be in links
+    modules: ['keychain']
+    src: https://github.com/oca/server-tools.git 10.0
