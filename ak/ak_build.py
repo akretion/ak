@@ -144,11 +144,13 @@ class AkBuild(AkSub):
         self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
 
     def main(self, *args):
+        config_file = self.config
         if self.linksonly:
             self._ensure_viable_installation()
-            return self._generate_links()
-        config_file = self.config
-
+            self._generate_links()
+            # Links have been updated then addons path must be updated
+            self._print_addons_path(config_file)
+            return
         if self.config != SPEC_YAML:
             config_file = self.config
         elif Path(FROZEN_YAML).is_file():
