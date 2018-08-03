@@ -23,6 +23,7 @@ REPO_YAML = 'repo.yaml'
 SPEC_YAML = 'spec.yaml'
 FROZEN_YAML = 'frozen.yaml'
 VENDOR_FOLDER = 'external-src'
+LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
@@ -121,21 +122,20 @@ class AkBuild(AkSub):
 
     def _print_addons_path(self, config):
         spec = yaml.load(open(config).read())
-        paths = []
-        current_folder = os.getcwd()
-        odoo_folder = False
+        paths = [LINK_FOLDER, LOCAL_FOLDER]
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
-                if './odoo' == repo_path:
+                if repo_path == 'odoo':
                     # When odoo, we need to add 2 path
-                    odoo_folder = True
+                    paths.append('%s/odoo/addons' % ODOO_FOLDER)
+                    paths.append('%s/addons' % ODOO_FOLDER)
+                elif repo_path[0:2] == './':
+                    paths.append(repo_path)  # don't touch relative paths
                 else:
-                    paths.append(repo_path.replace('./', ''))
-        if odoo_folder:
-            paths = ['odoo/odoo/addons', 'odoo/addons'] + paths
-        addons_path = ','.join(['%s/%s/%s' % (current_folder, VENDOR_FOLDER, x)
-                                for x in paths])
-        addons_path = '%s/%s,%s' % (current_folder, LINK_FOLDER, addons_path)
+                    # TODO Need to be delete when all spec.yaml files cleaned
+                    paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
+
+        addons_path = ','.join(paths)
         print('Addons path for your config file: ', addons_path)
         return addons_path
 

@@ -1,0 +1,1 @@
+./manufacture,external-src/l10n-france,external-src/social,links,local-src,src/addons,src/odoo/addons
