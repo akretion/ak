@@ -117,8 +117,10 @@ class AkBuild(AkSub):
 
     def _set_links(self, repo_path, modules, dest_path):
         for module in modules:
-            src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
-            ln['-s', src, dest_path]()
+            src = '%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
+            src = local.path(src)
+            dest = dest_path + '/' + module
+            src.symlink(dest)
 
     def _print_addons_path(self, config):
         spec = yaml.load(open(config).read())
