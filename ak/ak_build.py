@@ -117,7 +117,7 @@ class AkBuild(AkSub):
 
     def _set_links(self, repo_path, modules, dest_path):
         for module in modules:
-            src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path[2:], module)
+            src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path, module)
             ln['-s', src, dest_path]()
 
     def _print_addons_path(self, config):
