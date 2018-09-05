@@ -87,7 +87,7 @@ class AkMigrate(AkSub):
         with open(SPEC_YAML, 'w') as output:
             file_content = yaml.dump(data, default_flow_style=False)
             # format fine tuneed
-            file_content = file_content.replace('- ./', '\n./')
+            file_content = file_content.replace('- ./', '\n')
             file_content = file_content.replace('null', '[]')
             file_content = file_content.replace('.git', '')
             # Ugly workaround to avoid wrong display of modules in file
