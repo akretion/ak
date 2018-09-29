@@ -55,10 +55,13 @@ class AkBuild(AkSub):
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
     def _convert_repo(self, repo):
+        default_depth = 20
         if repo.get('remotes'):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
+            if not repo.get('defaults').get('depth'):
+                repo['default'] = {'depth' : default_depth}
             return repo
         else:
             src = repo['src'].split(' ')
@@ -77,6 +80,7 @@ class AkBuild(AkSub):
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
+                'default': {'depth': repo.get('depth', default_depth)},
             }
 
     def _generate_repo_yaml(self):
@@ -101,9 +105,9 @@ class AkBuild(AkSub):
         "Link modules defined in repos.yml/yaml in modules folder"
         spec = yaml.load(open(self.config).read())
         dest_path = local.path(LINK_FOLDER)
-        for repo_path, repo in spec.items():
+        for key, repo in spec.items():
             modules = repo.pop('modules', [])
-            self._set_links(repo_path, modules, dest_path)
+            self._set_links(key, modules, dest_path)
 
     def _update_dir(self, path, clear_dir=False):
         "Create dir and remove links"
@@ -115,10 +119,14 @@ class AkBuild(AkSub):
                 logger.debug('rm all links from %s' % path)
                 find['.']['-type', 'l']['-delete']()
 
-    def _set_links(self, repo_path, modules, dest_path):
+    def _set_links(self, key, modules, dest_path):
         for module in modules:
-            src = '../%s/%s/%s' % (VENDOR_FOLDER, repo_path, module)
+            if key == 'odoo':
+                src = '../src/addons/%s' % module
+            else:
+                src = '../%s/%s/%s' % (VENDOR_FOLDER, key, module)
             ln['-s', src, dest_path]()
+
 
     def _print_addons_path(self, config):
         spec = yaml.load(open(config).read())
