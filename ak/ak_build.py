@@ -27,6 +27,7 @@ LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
+DEFAULT_DEPTH=20
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +56,12 @@ class AkBuild(AkSub):
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
     def _convert_repo(self, repo):
-        default_depth = 20
         if repo.get('remotes'):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
-            if not repo.get('defaults').get('depth'):
-                repo['default'] = {'depth' : default_depth}
+            if not repo.get('defaults', {}).get('depth'):
+                repo['default'] = {'depth' : DEFAULT_DEPTH}
             return repo
         else:
             src = repo['src'].split(' ')
@@ -80,7 +80,7 @@ class AkBuild(AkSub):
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
-                'default': {'depth': repo.get('depth', default_depth)},
+                'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
 
     def _generate_repo_yaml(self):
