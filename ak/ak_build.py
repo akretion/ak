@@ -83,9 +83,9 @@ class AkBuild(AkSub):
                 'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
 
-    def _generate_repo_yaml(self):
+    def _generate_repo_yaml(self, config):
         repo_conf = {}
-        config = yaml.safe_load(open(self.config).read())
+        config = yaml.safe_load(open(config).read())
         for key in config:
             if key == 'odoo':
                 # put odoo in a different directory
@@ -101,9 +101,9 @@ class AkBuild(AkSub):
         with open(self.output, 'w') as output:
             output.write(data)
 
-    def _generate_links(self):
+    def _generate_links(self, config):
         "Link modules defined in repos.yml/yaml in modules folder"
-        spec = yaml.load(open(self.config).read())
+        spec = yaml.load(open(config).read())
         dest_path = local.path(LINK_FOLDER)
         for key, repo in spec.items():
             modules = repo.pop('modules', [])
@@ -155,21 +155,17 @@ class AkBuild(AkSub):
         config_file = self.config
         if self.linksonly:
             self._ensure_viable_installation()
-            self._generate_links()
+            self._generate_links(config_file)
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
             return
-        if self.config != SPEC_YAML:
-            config_file = self.config
-        elif Path(FROZEN_YAML).is_file():
+        if Path(FROZEN_YAML).is_file():
             config_file = FROZEN_YAML
             logging.info("Frozen file exist use it for building the project")
 
-        self.config = config_file
-
         self._ensure_viable_installation()
-        self._generate_repo_yaml()
-        self._generate_links()
+        self._generate_repo_yaml(config_file)
+        self._generate_links(config_file)
         config_file = self.output
         if not self.fileonly:
             local['gitaggregate']['-c', config_file] & FG
