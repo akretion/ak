@@ -165,6 +165,8 @@ class AkBuild(AkSub):
             config_file = FROZEN_YAML
             logging.info("Frozen file exist use it for building the project")
 
+        self.config = config_file
+
         self._ensure_viable_installation()
         self._generate_repo_yaml()
         self._generate_links()
