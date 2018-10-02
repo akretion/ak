@@ -9,7 +9,8 @@ def read(*parts):
         return fobj.read()
 
 def find_version(*file_paths):
-    version_file = read(*file_paths)
+    version_file = read("ak/ak_sub.py")
+
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
                               version_file, re.M)
     if version_match:
@@ -21,7 +22,7 @@ setup(
     version=find_version("ak", "main.py"),
     author='Akretion',
     author_email='contact@akretion.com',
-    url='https://github.com/akretion/voodoo-cli/',
+    url='https://github.com/akretion/ak',
     description='simple cli for Odoo',
     license="AGPLv3+",
     long_description=open('README.md').read(),
