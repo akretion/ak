@@ -147,14 +147,16 @@ class AkBuild(AkSub):
         print('Addons path for your config file: ', addons_path)
         return addons_path
 
-    def _ensure_viable_installation(self):
+    def _ensure_viable_installation(self, config):
+        if not local.path(config).is_file():
+            raise Exception("Config file not found.")
         self._update_dir(local.path(VENDOR_FOLDER))
         self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
 
     def main(self, *args):
         config_file = self.config
         if self.linksonly:
-            self._ensure_viable_installation()
+            self._ensure_viable_installation(config_file)
             self._generate_links()
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
@@ -165,7 +167,7 @@ class AkBuild(AkSub):
             config_file = FROZEN_YAML
             logging.info("Frozen file exist use it for building the project")
 
-        self._ensure_viable_installation()
+        self._ensure_viable_installation(config_file)
         self._generate_repo_yaml()
         self._generate_links()
         config_file = self.output
