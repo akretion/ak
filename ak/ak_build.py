@@ -159,7 +159,9 @@ class AkBuild(AkSub):
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
             return
-        if Path(FROZEN_YAML).is_file():
+        if self.config != SPEC_YAML:
+            config_file = self.config
+        elif Path(FROZEN_YAML).is_file():
             config_file = FROZEN_YAML
             logging.info("Frozen file exist use it for building the project")
 
