@@ -184,7 +184,12 @@ class AkBuild(AkSub):
         if not self.fileonly:
             args = ['-c', config_file]
             if self.directory:
-                args.append(['-d', '%s/%s' % (VENDOR_FOLDER, self.directory)])
+                path = '%s/%s' % (VENDOR_FOLDER, self.directory)
+                if not os.path.exists('./%s' % path):
+                    raise Exception(
+                        "\n\nSpecified file './%s' doesn't "
+                        "exists in your system" % path)
+                args.append(['-d', './%s' % path])
             local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
             # in order to have the module key
