@@ -27,7 +27,7 @@ LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
-DEFAULT_DEPTH=20
+DEFAULT_DEPTH = 20
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,11 @@ class AkBuild(AkSub):
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+    directory = cli.SwitchAttr(
+        ["d", "directory"], group="IO",
+        help="Refresh aggregation of a specific directory "
+             "(this directory must exists) "
+             "shortcut for `gitaggregate -c repo.yaml -d my_dir`")
 
     def _convert_repo(self, repo):
         if repo.get('remotes'):
@@ -61,7 +66,7 @@ class AkBuild(AkSub):
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
             if not repo.get('defaults', {}).get('depth'):
-                repo['default'] = {'depth' : DEFAULT_DEPTH}
+                repo['default'] = {'depth': DEFAULT_DEPTH}
             return repo
         else:
             src = repo['src'].split(' ')
@@ -177,7 +182,19 @@ class AkBuild(AkSub):
 
         config_file = self.output
         if not self.fileonly:
-            local['gitaggregate']['-c', config_file] & FG
+            args = ['-c', config_file]
+            if self.directory:
+                # TODO externalise it in a function
+                if self.directory == 'odoo':
+                    path = ODOO_FOLDER
+                else:
+                    path = '%s/%s' % (VENDOR_FOLDER, self.directory)
+                args.append(['-d', './%s' % path])
+                if not local.path(path).exists():
+                    raise Exception(
+                        "\nSpecified file './%s' doesn't "
+                        "exists in your system" % path)
+            local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
             # in order to have the module key
             self._print_addons_path(self.config)
