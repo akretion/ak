@@ -127,8 +127,11 @@ class AkBuild(AkSub):
                 src = '../%s/%s/%s' % (VENDOR_FOLDER, key, module)
             ln['-s', src, dest_path]()
 
-
     def _print_addons_path(self, config):
+        """Construct addon path based on spec.yaml
+
+        modules specified in spec.yaml are linked in "link"
+        repos without modules are added explicitely to the path"""
         spec = yaml.load(open(config).read())
         paths = [LINK_FOLDER, LOCAL_FOLDER]
         for repo_path, repo in spec.items():
@@ -175,7 +178,9 @@ class AkBuild(AkSub):
         config_file = self.output
         if not self.fileonly:
             local['gitaggregate']['-c', config_file] & FG
-            self._print_addons_path(config_file)
+            # print addons_path should be called with spec.yml
+            # in order to have the module key
+            self._print_addons_path(self.config)
 
 
 @Ak.subcommand("freeze")
