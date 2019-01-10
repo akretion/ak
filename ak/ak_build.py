@@ -7,6 +7,7 @@ from plumbum.cmd import (
     gunzip, git, wget, python)
 from plumbum.commands.modifiers import FG, TF, BG, RETCODE
 from plumbum.commands.base import BaseCommand
+from plumbum.commands.processes import ProcessExecutionError
 from datetime import datetime
 import os
 import yaml
@@ -235,23 +236,8 @@ class AkFreeze(AkSub):
         with open(self.config, 'r') as myfile:
             conf = yaml.load(myfile)
         for directory, repo_data in conf.items():
-            i = 0
-            for merge in repo_data.get('merges'):
-                if isinstance(merge, str):
-                    parts = merge.split(' ')
-                    # branch is already frozen with commit
-                    if is_sha1(parts[1]):
-                        i += 1
-                        continue
-                    else:
-                        sha = self.find_branch_last_commit(
-                            parts[0], directory, parts[1])
-                        if not sha:
-                            continue
-                        parts[1] = sha
-                        repo_data.get('merges')[i] = ' '.join(parts)
-                        i += 1
-                else:
+            for i, merge in enumerate(repo_data.get('merges')):
+                if isinstance(merge, dict):
                     if is_sha1(merge.get('ref', '')):
                         continue
                     else:
@@ -260,6 +246,18 @@ class AkFreeze(AkSub):
                         if not sha:
                             continue
                         merge['ref'] = sha
+                else:
+                    remote, ref = merge.split(' ')
+                    # branch is already frozen with commit
+                    if is_sha1(ref):
+                        continue
+                    else:
+                        sha = self.find_branch_last_commit(
+                            remote, directory, ref)
+                        if not sha:
+                            continue
+                        ref = sha
+                        repo_data.get('merges')[i] = ' '.join([remote, ref])
             # Since we freeze every merges, we should always fetch all remotes
             remotes = list(repo_data.get('remotes').keys())
             repo_data['fetch_all'] = remotes
