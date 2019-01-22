@@ -3,3 +3,6 @@ git-aggregator >= 1.2.1
 kaptan==0.5.10
 PyYAML==3.13
 pathlib
+
+# Use same version of request as docky to simplify the installation
+requests==2.20.0
