@@ -2,19 +2,11 @@
 import logging
 from pathlib import Path
 from plumbum import cli, local
-from plumbum.cmd import (
-    mkdir, ls, find, ln,
-    gunzip, git, wget, python)
-from plumbum.commands.modifiers import FG, TF, BG, RETCODE
-from plumbum.commands.base import BaseCommand
+from plumbum.cmd import (mkdir, find, ln, git)
+from plumbum.commands.modifiers import FG
 from plumbum.commands.processes import ProcessExecutionError
-from datetime import datetime
 import os
 import yaml
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 from .ak_sub import AkSub, Ak
@@ -82,7 +74,7 @@ class AkBuild(AkSub):
                 raise Exception(
                     'Src must be in the format '
                     'http://github.com/oca/server-tools 10.0 <optional sha>')
-            repo_dict= {
+            repo_dict = {
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,

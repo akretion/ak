@@ -8,6 +8,8 @@ import os
 
 from .ak_sub import AkSub, Ak
 
+# All code here should be checked and probably removed
+
 
 @Ak.subcommand("project")
 class AkProject(AkSub):
@@ -142,7 +144,7 @@ class AkDiff(cli.Application):
         for path in paths:
             # Skip voodoo folder (module path) and do not consider double paths
             # for odoo
-            if path.startswith(MODULE_FOLDER) and not\
+            if path.startswith(MODULE_FOLDER) and not \
                     path.endswith('openerp/addons'):
                 print("\n")
                 print("".ljust(100, '~'))
@@ -151,6 +153,7 @@ class AkDiff(cli.Application):
                 with local.cwd(path):
                     status = git['status'](retcode=None)
                     print(status)
+
 
 @AkModule.subcommand("diff")
 class AkDiff(AkSub):
@@ -176,4 +179,3 @@ class AkDiff(AkSub):
         params = ['diff', commit, 'HEAD', '--'] + local_modules\
             + [':!*.po', ':!*.pot']
         self.parent.parent._exec("git", params)
-
