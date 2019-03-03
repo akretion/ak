@@ -8,3 +8,4 @@ from . import ak_db
 from . import ak_other
 from . import ak_build
 from . import ak_migrate
+from . import ak_suggest
