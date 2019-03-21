@@ -82,6 +82,8 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
             for string in strings:
                 if string in branch.get('src'):
                     allowed += 1
+        else:
+            allowed = 1
         if modules and allowed:
             return True
         return False
