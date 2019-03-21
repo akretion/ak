@@ -28,8 +28,9 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
 
     include = cli.SwitchAttr(
         ["i", "include"],
-        help="Only display suggestions when the string provided "
-             "is a part of the branch name.")
+        help="Only display suggestions when one of the strings provided "
+             "is a part of the branch name.\n"
+             "Several strings possible with a comma separator.")
 
     def _ensure_viable_installation(self):
         if not local.path(SPEC_YAML).is_file():
@@ -44,6 +45,10 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
             modules = self._search_for_installable_modules_branch(key)
             # We substract modules in SPEC_YAML
             modules = [x for x in modules if x not in branch.get('modules')]
+            # We substract useless modules in SPEC_YAML
+            if branch.get('useless'):
+                modules = [x for x in modules
+                           if x not in branch.get('useless')]
             if self._filter_according_branch(branch, modules):
                 branch_name = branch.get('src').replace(' ', '/tree/')
                 modules_string = ', '.join(modules)
@@ -71,13 +76,13 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
         return modules
 
     def _filter_according_branch(self, branch, modules):
-        oca = False
-        allowed = True
-        if 'https://github.com/oca' in branch.get('src'):
-            oca = True
-        if self.include and self.include not in branch.get('src'):
-            allowed = False
-        if modules and oca and allowed:
+        allowed = 0
+        if self.include:
+            strings = self.include.split(',')
+            for string in strings:
+                if string in branch.get('src'):
+                    allowed += 1
+        if modules and allowed:
             return True
         return False
 
