@@ -9,7 +9,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 
 ERP_CFG = local.env.get('ERP_CFG_PATH', 'odoo.cfg')
 WORKSPACE = '.'

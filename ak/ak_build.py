@@ -21,6 +21,7 @@ LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
 DEFAULT_DEPTH = 20
+PREFIX = '/odoo/'
 
 logger = logging.getLogger(__name__)
 
@@ -135,21 +136,30 @@ class AkBuild(AkSub):
         repos without modules are added explicitely to the path"""
         spec = yaml.load(open(config).read())
         paths = [LINK_FOLDER, LOCAL_FOLDER]
+        relative_paths = []
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
                 if repo_path == 'odoo':
                     # When odoo, we need to add 2 path
                     paths.append('%s/odoo/addons' % ODOO_FOLDER)
                     paths.append('%s/addons' % ODOO_FOLDER)
+                # Is it still really needed? why would we use relative path
+                # with C2C docker image? I think it should be removed
                 elif repo_path[0:2] == './':
-                    paths.append(repo_path)  # don't touch relative paths
+                    relative_paths.append(repo_path)
                 else:
                     # TODO Need to be delete when all spec.yaml files cleaned
+                    # Update 2019/04 No it should not?
                     paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
 
-        addons_path = ','.join(paths)
-        print('Addons path for your config file: ', addons_path)
-        return addons_path
+        # Construct absolute path, then relative path if any and merge both
+        # AFAIK the relative path logic should be removed.
+        # Because we do not use it and it add complexity
+        addons_path = '{}{}'.format(PREFIX, ',{}'.format(PREFIX).join(paths))
+        relative_path = ','.join(relative_paths)
+        whole_path = '{},{}'.format(addons_path, relative_path)
+        print('Addons path for your config file: ', whole_path)
+        return whole_path
 
     def _ensure_viable_installation(self, config):
         if not local.path(config).is_file():
