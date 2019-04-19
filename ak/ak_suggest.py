@@ -31,6 +31,12 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
         help="Only display suggestions when one of the strings provided "
              "is a part of the branch name.\n"
              "Several strings possible with a comma separator.")
+    xand = cli.Flag(
+        ["x", "xand"],
+        help="Consider each member of `include` strings options as mandatory\n"
+             "i.e. in `-xi oca,12` 'oca' and '12' are mandatory "
+             "in branch name to be caught.\n"
+             "Only taken account if `include` option specified.")
 
     def _ensure_viable_installation(self):
         if not local.path(SPEC_YAML).is_file():
@@ -82,6 +88,8 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
             for string in strings:
                 if string in branch.get('src'):
                     allowed += 1
+            if self.xand and allowed < len(strings):
+                allowed = 0
         else:
             allowed = 1
         if modules and allowed:
