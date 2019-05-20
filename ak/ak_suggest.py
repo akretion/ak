@@ -44,7 +44,7 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
 
     def _set_suggested(self):
         with open(local.path(SPEC_YAML), 'r') as f:
-            spec = yaml.load(f.read())
+            spec = yaml.load(f.read(), Loader=yaml.FullLoader)
         for key, branch in spec.items():
             if key == 'odoo':
                 continue

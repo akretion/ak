@@ -104,7 +104,7 @@ class AkBuild(AkSub):
 
     def _generate_links(self, config):
         "Link modules defined in repos.yml/yaml in modules folder"
-        spec = yaml.load(open(config).read())
+        spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         dest_path = local.path(LINK_FOLDER)
         for key, repo in spec.items():
             modules = repo.pop('modules', [])
@@ -133,7 +133,7 @@ class AkBuild(AkSub):
 
         modules specified in spec.yaml are linked in "link"
         repos without modules are added explicitely to the path"""
-        spec = yaml.load(open(config).read())
+        spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         paths = [LINK_FOLDER, LOCAL_FOLDER]
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
@@ -226,7 +226,7 @@ class AkFreeze(AkSub):
         # yaml file a lot Which is not good, because we want to re-create it
         # after
         with open(self.config, 'r') as myfile:
-            conf = yaml.load(myfile)
+            conf = yaml.load(myfile, Loader=yaml.FullLoader)
         for directory, repo_data in conf.items():
             for i, merge in enumerate(repo_data.get('merges')):
                 if isinstance(merge, dict):
