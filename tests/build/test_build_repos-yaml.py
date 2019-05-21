@@ -12,6 +12,7 @@ cp = local['cp']
 test = '/tests/build/'
 repos = local.cwd + test + 'repos.yaml'
 
+
 def build_and_cmp(name, target):
     source = local.cwd + test + name
     with local.tempdir() as tmp:
@@ -21,8 +22,9 @@ def build_and_cmp(name, target):
             assert ak['build']['--fileonly'] & TF
             local['cat']['repo.yaml'] & FG
 
-            ytarget = yaml.load(open(target).read())
-            ysource = yaml.load(open('repo.yaml').read())
+            ytarget = yaml.load(open(target).read(), Loader=yaml.FullLoader)
+            ysource = yaml.load(
+                open('repo.yaml').read(), Loader=yaml.FullLoader)
             assert ytarget == ysource
 
 
