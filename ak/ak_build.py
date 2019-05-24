@@ -88,7 +88,10 @@ class AkBuild(AkSub):
         repo_conf = {}
         config = yaml.safe_load(open(config).read())
         for key in config:
-            if key == 'odoo':
+            if config[key].get("prebuild"):
+                print("Use prebuild modules for repo %s" % key)
+                continue
+            elif key == 'odoo':
                 # put odoo in a different directory
                 repo_key = ODOO_FOLDER
             elif key[0:2] == './':
@@ -108,7 +111,7 @@ class AkBuild(AkSub):
         dest_path = local.path(LINK_FOLDER)
         for key, repo in spec.items():
             modules = repo.pop('modules', [])
-            self._set_links(key, modules, dest_path)
+            self._set_links(key, modules, dest_path, repo.get('prebuild'))
 
     def _update_dir(self, path, clear_dir=False):
         "Create dir and remove links"
@@ -120,12 +123,17 @@ class AkBuild(AkSub):
                 logger.debug('rm all links from %s' % path)
                 find['.']['-type', 'l']['-delete']()
 
-    def _set_links(self, key, modules, dest_path):
+    def _set_links(self, key, modules, dest_path, prebuild):
         for module in modules:
-            if key == 'odoo':
-                src = '../src/addons/%s' % module
+            if prebuild:
+                base = '/prebuild'
             else:
-                src = '../%s/%s/%s' % (VENDOR_FOLDER, key, module)
+                base = '..'
+
+            if key == 'odoo':
+                src = '%s/src/addons/%s' % (base, module)
+            else:
+                src = '%s/%s/%s/%s' % (base, VENDOR_FOLDER, key, module)
             ln['-s', src, dest_path]()
 
     def _print_addons_path(self, config):
