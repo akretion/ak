@@ -1,8 +1,6 @@
-plumbum >= 1.6.6
-git-aggregator >= 1.2.1
-kaptan==0.5.10
-PyYAML==3.13
+plumbum >= 1.6.7
+git-aggregator >= 1.6.0
+kaptan >= 0.5.12
+PyYAML
 pathlib
-
-# Use same version of request as docky to simplify the installation
-requests==2.20.0
+requests

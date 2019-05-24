@@ -1,5 +1,25 @@
 ## Ak
 
+
+Installation:
+
+We deeply recommand you to use pipx for installing python cli
+
+Install
+
+```
+pipx install -e --spec git+https://github.com/akretion/ak-odoo-incubator  ak --force --include-deps
+```
+
+Install for dev purpose
+```
+git clone https://github.com/akretion/ak
+cd ak
+pipx install -e --spec . ak --force --include-deps
+```
+
+Usage
+
 ```
 
 Usage:
