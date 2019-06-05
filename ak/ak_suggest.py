@@ -1,4 +1,4 @@
-"""AK."""
+"""ak suggest"""
 import logging
 import yaml
 import os
@@ -21,7 +21,7 @@ UNRELEVANT_DIRECTORIES = ('setup', '.git')
 class AkSuggest(AkSub):
     """ Display available modules which are not in modules list of your SPEC_YAML.
         display i.e.
-INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tree/12.0 ['base_suspend_security']
+INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 ['base_...']
 
     By using `include` option, you may filter the output
         """
@@ -45,6 +45,7 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
     def _set_suggested(self):
         with open(local.path(SPEC_YAML), 'r') as f:
             spec = yaml.load(f.read(), Loader=yaml.FullLoader)
+        suggested = False
         for key, branch in spec.items():
             if key == 'odoo':
                 continue
@@ -57,9 +58,14 @@ INFO:ak.ak_suggest: 1 modules in branch https://github.com/oca/server-backend/tr
                            if x not in branch.get('useless')]
             if self._filter_according_branch(branch, modules):
                 branch_name = branch.get('src').replace(' ', '/tree/')
-                modules_string = ', '.join(modules)
-                logger.info(' %s modules in branch %s M: %s',
+                modules_string = ', '.join(sorted(modules))
+                suggested = True
+                logger.info('   %s modules in branch %s M: %s',
                             len(modules), branch_name, modules_string)
+        if not suggested:
+            logger.info(
+                "  No new module in branch matching provided args "
+                "since last suggestion")
 
     def _search_for_installable_modules_branch(self, directory):
         main_path = '%s/%s' % (VENDOR_FOLDER, directory)
