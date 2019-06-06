@@ -92,7 +92,7 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
         if self.include:
             strings = self.include.split(',')
             for string in strings:
-                if string in branch.get('src'):
+                if branch.get('src') and string in branch['src']:
                     allowed += 1
             if self.xand and allowed < len(strings):
                 allowed = 0
