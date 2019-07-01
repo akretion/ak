@@ -8,7 +8,7 @@ We deeply recommand you to use pipx for installing python cli
 Install
 
 ```
-pipx install -e --spec git+https://github.com/akretion/ak-odoo-incubator  ak --force --include-deps
+pipx install -e --spec git+https://github.com/akretion/ak ak --force --include-deps
 ```
 
 Install for dev purpose
