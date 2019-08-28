@@ -181,10 +181,11 @@ class AkBuild(AkSub):
             logging.info("Frozen file exist use it for building the project")
 
         self._ensure_viable_installation(config_file)
-        self._generate_repo_yaml(config_file)
         self._generate_links(config_file)
-
-        config_file = self.output
+        if config_file != FROZEN_YAML:
+            # Frozen file already have the format of gitaggregator
+            self._generate_repo_yaml(config_file)
+            config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
             if self.directory:
