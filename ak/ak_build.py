@@ -106,7 +106,7 @@ class AkBuild(AkSub):
             output.write(data)
 
     def _generate_links(self, config):
-        "Link modules defined in repos.yml/yaml in modules folder"
+        "Link modules defined in spec.yml/yaml in modules folder"
         spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         dest_path = local.path(LINK_FOLDER)
         for key, repo in spec.items():
@@ -167,24 +167,20 @@ class AkBuild(AkSub):
 
     def main(self, *args):
         config_file = self.config
+        self._ensure_viable_installation(config_file)
+        self._generate_links(config_file)
         if self.linksonly:
-            self._ensure_viable_installation(config_file)
-            self._generate_links(config_file)
-
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
             return
-        if self.config != SPEC_YAML:
-            config_file = self.config
-        elif Path(FROZEN_YAML).is_file():
+        if Path(FROZEN_YAML).is_file():
             config_file = FROZEN_YAML
             logging.info("Frozen file exist use it for building the project")
 
-        self._ensure_viable_installation(config_file)
-        self._generate_repo_yaml(config_file)
-        self._generate_links(config_file)
-
-        config_file = self.output
+        if config_file != FROZEN_YAML:
+            # Frozen file already have the format of gitaggregator
+            self._generate_repo_yaml(config_file)
+            config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
             if self.directory:
