@@ -57,7 +57,13 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
                 modules = [x for x in modules
                            if x not in branch.get('useless')]
             if self._filter_according_branch(branch, modules):
-                branch_name = branch.get('src').replace(' ', '/tree/')
+                if not branch.get("src") and len(spec[key].get("remotes")) > 0:
+                    branch_name = [
+                        y for x, y in spec[key]["remotes"].items()][0]
+                elif branch.get("src"):
+                    branch_name = branch.get("src").replace(" ", "/tree/")
+                else:
+                    branch_name = "none"
                 modules_string = ', '.join(sorted(modules))
                 suggested = True
                 logger.info('   %s modules in branch %s M: %s',
