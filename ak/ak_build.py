@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def is_sha1(maybe_sha):
+    if isinstance(maybe_sha, float):
+        return False
     maybe_sha = maybe_sha or ''
     if len(maybe_sha) != 40:
         return False
@@ -33,6 +35,21 @@ def is_sha1(maybe_sha):
     except ValueError:
         return False
     return True
+
+def parse_src(src):
+    """ Src is
+    <src> <branch>
+    <src> <branch> <commit>
+    """
+    splitted = src.split(' ')
+    if len(splitted) == 2:
+        return splitted[0], splitted[1], None
+    elif len(splitted) == 3:
+        return splitted
+    else:
+        raise Exception(
+            'Src must be in the format '
+            'http://github.com/oca/server-tools 10.0 <optional sha>')
 
 
 def get_repo_key_from_spec(key):
@@ -102,21 +119,13 @@ class AkBuild(AkSub):
                             merges[index] = "%s %s" % (remote, frozen_sha)
             return repo
         else:
-            src = repo['src'].split(' ')
-            # case we have specify the url and the branch
-            if len(src) == 2:
-                src, branch = src
+            src, branch, commit = parse_src(repo['src'])
+            if not commit:
                 commit = frozen.get('origin', {}).get(branch)
-            # case we have specify the url and the branch and the commit
-            elif len(src) == 3:
-                src, branch, commit = src
-            else:
-                raise Exception(
-                    'Src must be in the format '
-                    'http://github.com/oca/server-tools 10.0 <optional sha>')
+
             repo_dict = {
                 'remotes': {'origin': src},
-                'merges': ['origin %s' % (commit or branch)],
+                'merges': ['origin %s' % commit],
                 'target': 'origin %s' % branch,
                 'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
@@ -242,22 +251,44 @@ class AkFreeze(AkSub):
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
-    def find_branch_last_commit(self, remote, repo_path, branch):
+    def find_branch_last_commit(self, directory, remote, branch):
+        repo_path = get_repo_key_from_spec(directory)
         with local.cwd(repo_path):
             try:
                 # We do not freeze this kind of refs for now :
                 # refs/pull/780/head
-                sha = git['rev-parse'][remote + '/' + branch]().strip()
+                sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
             except ProcessExecutionError:
                 sha = ''
+        if not sha:
+            raise Exception(
+                "Error when trying to find the commit "
+                "number for repo %s and branch %s"
+                % (directory, branch))
         return sha
+
+    def update_frozen_dict_conf(
+            self, frozen, previous_frozen, directory, remote, ref):
+        if is_sha1(ref):
+            # This branch is already freeze in spec
+            # do not add additional freeze here
+            return
+        sha = previous_frozen.get(directory, {}).get(remote, {}).get(ref)
+        if not sha:
+            sha = self.find_branch_last_commit(directory, remote, ref)
+        frozen_branch = {ref: sha}
+        frozen[directory] = frozen.get(directory, {})
+        frozen[directory][remote] = frozen[directory].get(remote, {})
+        frozen[directory][remote].update(frozen_branch)
 
     def main(self, *args):
         """
-            Build Froen.yaml file. Take spec.yaml file and for each
+            Build Frozen.yaml file. Take spec.yaml file and for each
             branch, if no commit is specified add the commit in the frozen file
             If the branch already exists in frozen file, keep it and do not
             update it.
+            Note: the commit frezed is the last commit of the remote branch
+            based on existing fetch done by the build
         """
         if not os.path.isfile(self.config):
             raise Exception(
@@ -265,40 +296,20 @@ class AkFreeze(AkSub):
 
         with open(self.config, 'r') as myfile:
             conf = yaml.load(myfile, Loader=yaml.FullLoader)
+        frozen = {}
         if not os.path.isfile(self.output):
-            frozen_conf = {}
+            previous_frozen = {}
         else:
             with open(self.output, 'r') as myfrozenfile:
-                frozen_conf = yaml.load(myfrozenfile, Loader=yaml.FullLoader)
-
-        new_frozen_conf = frozen_conf.copy()
-
-        def update_frozen_dict_conf():
-            print(ref, remote)
-            if is_sha1(ref):
-                return
-            if frozen_conf.get(directory, {}).get(remote, {}).get(ref):
-                return
-            directory_path = get_repo_key_from_spec(directory)
-            sha = self.find_branch_last_commit(
-                remote, directory_path, ref)
-            if not sha:
-                print("Error when trying to find the commit "
-                      "number for repo %s and branch %s"
-                      % (directory, merge.get('ref')))
-                return
-            frozen_branch = {ref: sha}
-            new_frozen_conf[directory] = new_frozen_conf.get(
-                directory, {})
-            new_frozen_conf[directory][remote] = new_frozen_conf[directory].\
-                get(remote, {})
-            new_frozen_conf[directory][remote].update(frozen_branch)
+                previous_frozen = yaml.load(
+                    myfrozenfile, Loader=yaml.FullLoader)
 
         for directory, spec_data in conf.items():
             if is_spec_simplified_format(spec_data):
                 remote = 'origin'
-                ref = spec_data['src'].split(' ')[-1]
-                update_frozen_dict_conf()
+                src, ref, commit = parse_src(spec_data['src'])
+                self.update_frozen_dict_conf(
+                    frozen, previous_frozen, directory, remote, ref)
             else:
                 for i, merge in enumerate(spec_data.get('merges')):
                     if isinstance(merge, dict):
@@ -306,7 +317,8 @@ class AkFreeze(AkSub):
                         remote = merge.get('remote')
                     else:
                         remote, ref = merge.split(' ')
-                    update_frozen_dict_conf()
+                    self.update_frozen_dict_conf(
+                        frozen, previous_frozen, directory, remote, ref)
 
         with open(self.output, 'w') as outfile:
-            yaml.dump(new_frozen_conf, outfile, default_flow_style=False)
+            yaml.dump(frozen, outfile, default_flow_style=False)
