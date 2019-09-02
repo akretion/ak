@@ -57,9 +57,9 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
                 modules = [x for x in modules
                            if x not in branch.get('useless')]
             if self._filter_according_branch(branch, modules):
-                if not branch.get("src") and len(spec["pos"]["remotes"]) > 0:
+                if not branch.get("src") and len(spec[key].get("remotes")) > 0:
                     branch_name = [
-                        y for x, y in spec["pos"]["remotes"].items()][0]
+                        y for x, y in spec[key]["remotes"].items()][0]
                 elif branch.get("src"):
                     branch_name = branch.get("src").replace(" ", "/tree/")
                 else:
