@@ -98,6 +98,8 @@ class AkBuild(AkSub):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
             if not repo.get('defaults', {}).get('depth'):
                 repo['default'] = {'depth': DEFAULT_DEPTH}
+            if not 'fetch_all' in repo:
+                repo['fetch_all'] = True
             if frozen:
                 merges = repo.get('merges', [])
                 for index, merge in enumerate(merges):
