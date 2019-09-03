@@ -127,11 +127,12 @@ class AkBuild(AkSub):
 
             repo_dict = {
                 'remotes': {'origin': src},
-                'merges': ['origin %s' % commit],
+                'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
                 'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
-                'fetch_all': True
             }
+            if commit:
+                repo_dict['fetch_all'] = True
             return repo_dict
 
     def _generate_repo_yaml(self, config, frozen):
