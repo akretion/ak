@@ -1,6 +1,5 @@
 """AK."""
 import logging
-from pathlib import Path
 from plumbum import cli, local
 from plumbum.cmd import (mkdir, find, ln, git)
 from plumbum.commands.modifiers import FG
@@ -26,11 +25,48 @@ logger = logging.getLogger(__name__)
 
 
 def is_sha1(maybe_sha):
+    if isinstance(maybe_sha, float):
+        return False
+    maybe_sha = maybe_sha or ''
     if len(maybe_sha) != 40:
         return False
     try:
         int(maybe_sha, 16)
     except ValueError:
+        return False
+    return True
+
+def parse_src(src):
+    """ Src is
+    <src> <branch>
+    <src> <branch> <commit>
+    """
+    splitted = src.split(' ')
+    if len(splitted) == 2:
+        return splitted[0], splitted[1], None
+    elif len(splitted) == 3:
+        return splitted
+    else:
+        raise Exception(
+            'Src must be in the format '
+            'http://github.com/oca/server-tools 10.0 <optional sha>')
+
+
+def get_repo_key_from_spec(key):
+    if key == 'odoo':
+        # put odoo in a different directory
+        repo_key = ODOO_FOLDER
+    elif key[0:2] == './':
+        # if prefixed with ./ don't change the path
+        repo_key = key
+    else:
+        # put sources in VENDOR_FOLDERS
+        repo_key = u'./%s/%s' % (VENDOR_FOLDER, key)
+    return repo_key
+
+
+def is_spec_simplified_format(yaml_data):
+    if yaml_data.get('remotes'):
         return False
     return True
 
@@ -47,33 +83,48 @@ class AkBuild(AkSub):
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+    frozen = cli.SwitchAttr(
+        ["f", "frozen"], default=FROZEN_YAML, help="Frozen file", group="IO")
     directory = cli.SwitchAttr(
         ["d", "directory"], group="IO",
         help="Refresh aggregation of a specific directory "
              "(this directory must exists) "
              "shortcut for `gitaggregate -c repo.yaml -d my_dir`")
 
-    def _convert_repo(self, repo):
-        if repo.get('remotes'):
+    def _convert_repo(self, repo, frozen):
+        if not is_spec_simplified_format(repo):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
             if not repo.get('defaults', {}).get('depth'):
                 repo['default'] = {'depth': DEFAULT_DEPTH}
+            if not 'fetch_all' in repo:
+                repo['fetch_all'] = True
+            if frozen:
+                merges = repo.get('merges', [])
+                for index, merge in enumerate(merges):
+                    if isinstance(merge, dict):
+                        ref = merge['ref']
+                        remote = merge['remote']
+                        if is_sha1(ref):
+                            continue
+                        frozen_sha = frozen.get(remote, {}).get(ref)
+                        if frozen_sha:
+                            merge['ref'] = frozen_sha
+                    # simple format
+                    else:
+                        remote, ref = merge.split(' ')
+                        if is_sha1(ref):
+                            continue
+                        frozen_sha = frozen.get(remote, {}).get(ref)
+                        if frozen_sha:
+                            merges[index] = "%s %s" % (remote, frozen_sha)
             return repo
         else:
-            src = repo['src'].split(' ')
-            # case we have specify the url and the branch
-            if len(src) == 2:
-                src, branch = src
-                commit = None
-            # case we have specify the url and the branch and the commit
-            elif len(src) == 3:
-                src, branch, commit = src
-            else:
-                raise Exception(
-                    'Src must be in the format '
-                    'http://github.com/oca/server-tools 10.0 <optional sha>')
+            src, branch, commit = parse_src(repo['src'])
+            if not commit:
+                commit = frozen.get('origin', {}).get(branch)
+
             repo_dict = {
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
@@ -81,26 +132,24 @@ class AkBuild(AkSub):
                 'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
             if commit:
-                repo_dict['fetch_all'] = ['origin']
+                repo_dict['fetch_all'] = True
             return repo_dict
 
-    def _generate_repo_yaml(self, config):
+    def _generate_repo_yaml(self, config, frozen):
         repo_conf = {}
         config = yaml.safe_load(open(config).read())
+        frozen_data = {}
+        if local.path(frozen).is_file():
+            frozen_data = yaml.safe_load(open(frozen).read())
+
         for key in config:
             if config[key].get("prebuild"):
                 print("Use prebuild modules for repo %s" % key)
                 continue
-            elif key == 'odoo':
-                # put odoo in a different directory
-                repo_key = ODOO_FOLDER
-            elif key[0:2] == './':
-                # if prefixed with ./ don't change the path
-                repo_key = key
-            else:
-                # put sources in VENDOR_FOLDERS
-                repo_key = u'./%s/%s' % (VENDOR_FOLDER, key)
-            repo_conf[repo_key] = self._convert_repo(config[key])
+
+            repo_key = get_repo_key_from_spec(key)
+            repo_conf[repo_key] = self._convert_repo(
+                config[key], frozen_data.get(key, {}))
         data = yaml.safe_dump(repo_conf)
         with open(self.output, 'w') as output:
             output.write(data)
@@ -173,14 +222,9 @@ class AkBuild(AkSub):
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
             return
-        if Path(FROZEN_YAML).is_file():
-            config_file = FROZEN_YAML
-            logging.info("Frozen file exist use it for building the project")
 
-        if config_file != FROZEN_YAML:
-            # Frozen file already have the format of gitaggregator
-            self._generate_repo_yaml(config_file)
-            config_file = self.output
+        self._generate_repo_yaml(config_file, self.frozen)
+        config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
             if self.directory:
@@ -207,55 +251,76 @@ class AkFreeze(AkSub):
     output = cli.SwitchAttr(
         ["o", "output"], default=FROZEN_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
-        ["c", "config"], default=REPO_YAML, help="Config file", group="IO")
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
-    def find_branch_last_commit(self, remote, repo, branch):
-        with local.cwd(repo):
+    def find_branch_last_commit(self, directory, remote, branch):
+        repo_path = get_repo_key_from_spec(directory)
+        with local.cwd(repo_path):
             try:
                 # We do not freeze this kind of refs for now :
                 # refs/pull/780/head
-                sha = git['rev-parse'][remote + '/' + branch]().strip()
+                sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
             except ProcessExecutionError:
                 sha = ''
+        if not sha:
+            raise Exception(
+                "Error when trying to find the commit "
+                "number for repo %s and branch %s"
+                % (directory, branch))
         return sha
 
+    def update_frozen_dict_conf(
+            self, frozen, previous_frozen, directory, remote, ref):
+        if is_sha1(ref):
+            # This branch is already freeze in spec
+            # do not add additional freeze here
+            return
+        sha = previous_frozen.get(directory, {}).get(remote, {}).get(ref)
+        if not sha:
+            sha = self.find_branch_last_commit(directory, remote, ref)
+        frozen_branch = {ref: sha}
+        frozen[directory] = frozen.get(directory, {})
+        frozen[directory][remote] = frozen[directory].get(remote, {})
+        frozen[directory][remote].update(frozen_branch)
+
     def main(self, *args):
+        """
+            Build Frozen.yaml file. Take spec.yaml file and for each
+            branch, if no commit is specified add the commit in the frozen file
+            If the branch already exists in frozen file, keep it and do not
+            update it.
+            Note: the commit frezed is the last commit of the remote branch
+            based on existing fetch done by the build
+        """
         if not os.path.isfile(self.config):
             raise Exception(
                 "Missing yaml config file %s" % self.config)
-        # TODO implement method to check config file format is good (should
-        # probably call git aggregator get_repos method)
 
-        # Do not use load_config from git aggregator for now as it modify the
-        # yaml file a lot Which is not good, because we want to re-create it
-        # after
         with open(self.config, 'r') as myfile:
             conf = yaml.load(myfile, Loader=yaml.FullLoader)
-        for directory, repo_data in conf.items():
-            for i, merge in enumerate(repo_data.get('merges')):
-                if isinstance(merge, dict):
-                    if is_sha1(merge.get('ref', '')):
-                        continue
+        frozen = {}
+        if not os.path.isfile(self.output):
+            previous_frozen = {}
+        else:
+            with open(self.output, 'r') as myfrozenfile:
+                previous_frozen = yaml.load(
+                    myfrozenfile, Loader=yaml.FullLoader)
+
+        for directory, spec_data in conf.items():
+            if is_spec_simplified_format(spec_data):
+                remote = 'origin'
+                src, ref, commit = parse_src(spec_data['src'])
+                self.update_frozen_dict_conf(
+                    frozen, previous_frozen, directory, remote, ref)
+            else:
+                for i, merge in enumerate(spec_data.get('merges')):
+                    if isinstance(merge, dict):
+                        ref = merge.get('ref')
+                        remote = merge.get('remote')
                     else:
-                        sha = self.find_branch_last_commit(
-                            merge.get('remote'), directory, merge.get('ref'))
-                        if not sha:
-                            continue
-                        merge['ref'] = sha
-                else:
-                    remote, ref = merge.split(' ')
-                    # branch is already frozen with commit
-                    if is_sha1(ref):
-                        continue
-                    else:
-                        sha = self.find_branch_last_commit(
-                            remote, directory, ref)
-                        if not sha:
-                            continue
-                        ref = sha
-                        repo_data.get('merges')[i] = ' '.join([remote, ref])
-            # Since we freeze every merges, we should always fetch all remotes
-            remotes = list(repo_data.get('remotes').keys())
-            repo_data['fetch_all'] = remotes
+                        remote, ref = merge.split(' ')
+                    self.update_frozen_dict_conf(
+                        frozen, previous_frozen, directory, remote, ref)
+
         with open(self.output, 'w') as outfile:
-            yaml.dump(conf, outfile, default_flow_style=False)
+            yaml.dump(frozen, outfile, default_flow_style=False)
