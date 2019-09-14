@@ -14,7 +14,7 @@ pipx install -e --spec git+https://github.com/akretion/ak ak --force --include-d
 If you don't want to use pipx, you can still use something like this: 
 
 ```
-python3 -m pip install -e git+https://github.com/akretion/ak --user
+python3 -m pip install git+https://github.com/akretion/ak --user
 ```
 
 Install for dev purpose
