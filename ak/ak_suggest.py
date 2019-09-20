@@ -73,7 +73,8 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
                     branch_name = branch.get("src").replace(" ", "/tree/")
                 else:
                     branch_name = "none"
-                modules_string = ', '.join(sorted(modules))
+                modules_string = "\n\t - "
+                modules_string += "\n\t - ".join(sorted(modules))
                 suggested = True
                 logger.info('   %s modules in branch %s M: %s',
                             len(modules), branch_name, modules_string)
@@ -107,7 +108,8 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
         if self.include:
             strings = self.include.split(',')
             for string in strings:
-                if branch.get('src') and string in branch['src']:
+                info = branch.get('src')
+                if info and string.lower() in info.lower():
                     allowed += 1
             if self.xand and allowed < len(strings):
                 allowed = 0
