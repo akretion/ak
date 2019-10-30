@@ -129,7 +129,7 @@ class AkBuild(AkSub):
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
-                'default': {'depth': repo.get('depth', DEFAULT_DEPTH)},
+                'defaults': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
             if commit:
                 repo_dict['fetch_all'] = True
