@@ -19,7 +19,6 @@ LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
-DEFAULT_DEPTH = 20
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +95,6 @@ class AkBuild(AkSub):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
-            if not repo.get('defaults', {}).get('depth'):
-                repo['default'] = {'depth': DEFAULT_DEPTH}
             if not 'fetch_all' in repo:
                 repo['fetch_all'] = True
             if frozen:
@@ -129,8 +126,10 @@ class AkBuild(AkSub):
                 'remotes': {'origin': src},
                 'merges': ['origin %s' % (commit or branch)],
                 'target': 'origin %s' % branch,
-                'defaults': {'depth': repo.get('depth', DEFAULT_DEPTH)},
             }
+            depth = repo.get('depth')
+            if depth:
+                repo_dict['defaults'] = {'depth': depth}
             if commit:
                 repo_dict['fetch_all'] = True
             return repo_dict
