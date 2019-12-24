@@ -1,7 +1,7 @@
 """AK."""
 import logging
 from plumbum import cli, local
-from plumbum.cmd import (mkdir, find, ln, git)
+from plumbum.cmd import (mkdir, find, ln, rm, git, cp)
 from plumbum.commands.modifiers import FG
 from plumbum.commands.processes import ProcessExecutionError
 import os
@@ -167,9 +167,9 @@ class AkBuild(AkSub):
             logger.debug('mkdir %s' % path)
             mkdir(path)
         if clear_dir:
-            with local.cwd(path):
-                logger.debug('rm all links from %s' % path)
-                find['.']['-type', 'l']['-delete']()
+            logger.debug('rm all links from %s' % path)
+            rm["-rf", path]()
+            mkdir(path)
 
     def _set_links(self, key, modules, dest_path, prebuild):
         for module in modules:
@@ -182,7 +182,18 @@ class AkBuild(AkSub):
                 src = '%s/src/addons/%s' % (base, module)
             else:
                 src = '%s/%s/%s/%s' % (base, VENDOR_FOLDER, key, module)
-            ln['-s', src, dest_path]()
+            with local.cwd(dest_path):
+                if os.environ.get("BUILD_MODE") == "production":
+                    cp['-r', src, dest_path]()
+                    langs = os.environ.get("BUILD_RESTRICT_LANG")
+                    if langs:
+                        cmd = find['.', '-name','*.po']
+                        for lang in langs.split(','):
+                            cmd = cmd['!', '-name', lang]
+                        cmd = cmd['-type', 'f', '-exec', 'rm', '-v', '{}', '+']
+                        cmd()
+                else:
+                    ln['-s', src, dest_path]()
 
     def _print_addons_path(self, config):
         """Construct addon path based on spec.yaml
