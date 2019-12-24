@@ -227,8 +227,9 @@ class AkBuild(AkSub):
     def main(self, *args):
         config_file = self.config
         self._ensure_viable_installation(config_file)
-        self._generate_links(config_file)
+
         if self.linksonly:
+            self._generate_links(config_file)
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
             return
@@ -251,6 +252,7 @@ class AkBuild(AkSub):
             local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
             # in order to have the module key
+            self._generate_links(self.config)
             self._print_addons_path(self.config)
 
 
