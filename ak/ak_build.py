@@ -19,6 +19,7 @@ LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
+JOBS = 2
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,10 @@ class AkBuild(AkSub):
         help="Refresh aggregation of a specific directory "
              "(this directory must exists) "
              "shortcut for `gitaggregate -c repo.yaml -d my_dir`")
+    jobs = cli.SwitchAttr(
+        ['j', 'jobs'], int,
+        default=JOBS,
+        help="Number of conccurents jobs")
 
     def _convert_repo(self, repo, frozen):
         if not is_spec_simplified_format(repo):
@@ -237,6 +242,7 @@ class AkBuild(AkSub):
                     raise Exception(
                         "\nSpecified file './%s' doesn't "
                         "exists in your system" % path)
+            args.append(['-j', self.jobs])
             local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
             # in order to have the module key
