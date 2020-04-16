@@ -36,6 +36,7 @@ def is_sha1(maybe_sha):
         return False
     return True
 
+
 def parse_src(src):
     """ Src is
     <src> <branch>
@@ -103,7 +104,7 @@ class AkBuild(AkSub):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
-            if not 'fetch_all' in repo:
+            if 'fetch_all' not in repo:
                 repo['fetch_all'] = True
             if frozen:
                 merges = repo.get('merges', [])
@@ -158,7 +159,7 @@ class AkBuild(AkSub):
             repo_conf[repo_key] = self._convert_repo(
                 config[key], frozen_data.get(key, {}))
         data = yaml.safe_dump(repo_conf)
-        with open(self.output, 'w') as output:
+        with open(self.full_path(self.output), 'w') as output:
             output.write(data)
 
     def _generate_links(self, config):
@@ -171,12 +172,15 @@ class AkBuild(AkSub):
 
     def _update_dir(self, path, clear_dir=False):
         "Create dir and remove links"
+        # Désolé pour ce tour de passe passe
+        directory_path = path._path
         if not path.exists():
-            logger.debug('mkdir %s' % path)
-            mkdir(path)
+            logger.debug('mkdir %s' % directory_path)
+            mkdir(directory_path)
         if clear_dir:
-            with local.cwd(path):
-                logger.debug('rm all links from %s' % path)
+            # import pdb; pdb.set_trace()
+            with local.cwd(directory_path):
+                logger.debug('rm all links from %s' % directory_path)
                 find['.']['-type', 'l']['-delete']()
 
     def _set_links(self, key, modules, dest_path, prebuild):
@@ -241,14 +245,14 @@ class AkBuild(AkSub):
         self._generate_repo_yaml(config_file, self.full_path(self.frozen))
         config_file = self.full_path(self.output)
         if not self.fileonly:
-            args = ['-c', config_file]
+            args = ['-c', config_file._path]
             if self.directory:
                 # TODO externalise it in a function
                 if self.directory == 'odoo':
                     path = self.full_path(ODOO_FOLDER)
                 else:
                     path = '%s/%s' % (self.full_path(VENDOR_FOLDER), self.directory)
-                args.append(['-d', './%s' % path])
+                args.append(['-d', './%s' % path._path])
                 if not self.full_path(path).exists():
                     raise Exception(
                         "\nSpecified file './%s' doesn't "
