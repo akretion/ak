@@ -83,6 +83,9 @@ class AkBuild(AkSub):
         ["o", "output"], default=REPO_YAML, help="Output file", group="IO")
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+    path = cli.SwitchAttr(
+        ["p", "path"], group="IO",
+        help="Path of file config, i.e. you may use -p ../..")
     frozen = cli.SwitchAttr(
         ["f", "frozen"], default=FROZEN_YAML, help="Frozen file", group="IO")
     directory = cli.SwitchAttr(
@@ -141,10 +144,10 @@ class AkBuild(AkSub):
 
     def _generate_repo_yaml(self, config, frozen):
         repo_conf = {}
-        config = yaml.safe_load(open(config).read())
+        config = yaml.safe_load(open(config._path).read())
         frozen_data = {}
-        if local.path(frozen).is_file():
-            frozen_data = yaml.safe_load(open(frozen).read())
+        if frozen.is_file():
+            frozen_data = yaml.safe_load(open(frozen._path).read())
 
         for key in config:
             if config[key].get("prebuild"):
@@ -160,8 +163,8 @@ class AkBuild(AkSub):
 
     def _generate_links(self, config):
         "Link modules defined in spec.yml/yaml in modules folder"
-        spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
-        dest_path = local.path(LINK_FOLDER)
+        spec = yaml.load(open(config._path).read(), Loader=yaml.FullLoader)
+        dest_path = self.full_path(LINK_FOLDER)
         for key, repo in spec.items():
             modules = repo.pop('modules', [])
             self._set_links(key, modules, dest_path, repo.get('prebuild'))
@@ -215,11 +218,19 @@ class AkBuild(AkSub):
     def _ensure_viable_installation(self, config):
         if not local.path(config).is_file():
             raise Exception("Config file not found.")
-        self._update_dir(local.path(VENDOR_FOLDER))
-        self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
+        self._update_dir(local.path(self.path, VENDOR_FOLDER))
+        self._update_dir(local.path(self.path, LINK_FOLDER), clear_dir=True)
+
+    def full_path(self, path):
+        return local.path(self.path, path)
 
     def main(self, *args):
-        config_file = self.config
+        if not self.path:
+            # TODO guess self.path if not defined
+            # (ie: external-src is root folder or more)
+            self.path = "."
+
+        config_file = self.full_path(self.config)
         self._ensure_viable_installation(config_file)
         self._generate_links(config_file)
         if self.linksonly:
@@ -227,18 +238,18 @@ class AkBuild(AkSub):
             self._print_addons_path(config_file)
             return
 
-        self._generate_repo_yaml(config_file, self.frozen)
-        config_file = self.output
+        self._generate_repo_yaml(config_file, self.full_path(self.frozen))
+        config_file = self.full_path(self.output)
         if not self.fileonly:
             args = ['-c', config_file]
             if self.directory:
                 # TODO externalise it in a function
                 if self.directory == 'odoo':
-                    path = ODOO_FOLDER
+                    path = self.full_path(ODOO_FOLDER)
                 else:
-                    path = '%s/%s' % (VENDOR_FOLDER, self.directory)
+                    path = '%s/%s' % (self.full_path(VENDOR_FOLDER), self.directory)
                 args.append(['-d', './%s' % path])
-                if not local.path(path).exists():
+                if not self.full_path(path).exists():
                     raise Exception(
                         "\nSpecified file './%s' doesn't "
                         "exists in your system" % path)
@@ -246,7 +257,7 @@ class AkBuild(AkSub):
             local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
             # in order to have the module key
-            self._print_addons_path(self.config)
+            self._print_addons_path(self.full_path(self.config))
 
 
 @Ak.subcommand("freeze")
