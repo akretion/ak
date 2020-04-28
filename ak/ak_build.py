@@ -19,6 +19,7 @@ LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
 BUILDOUT_SRC = './buildout.cfg'
+PREFIX = '/odoo/'
 JOBS = 2
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,7 @@ class AkBuild(AkSub):
         repos without modules are added explicitely to the path"""
         spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         paths = [LINK_FOLDER, LOCAL_FOLDER]
+        relative_paths = []
         for repo_path, repo in spec.items():
             if not repo.get('modules'):
                 if repo_path == 'odoo':
@@ -203,14 +205,15 @@ class AkBuild(AkSub):
                     paths.append('%s/odoo/addons' % ODOO_FOLDER)
                     paths.append('%s/addons' % ODOO_FOLDER)
                 elif repo_path[0:2] == './':
-                    paths.append(repo_path)  # don't touch relative paths
+                    relative_paths.append(repo_path)
                 else:
                     # TODO Need to be delete when all spec.yaml files cleaned
+                    # Update 2019/04 No it should not?
                     paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
 
-        addons_path = ','.join(paths)
-        print('Addons path for your config file: ', addons_path)
-        return addons_path
+        # Construct absolute path, better for odoo config file.
+        abs_path = ",".join([PREFIX + repo_path for repo_path in paths])
+        print('Addons path for your config file: ', abs_path)
 
     def _ensure_viable_installation(self, config):
         if not local.path(config).is_file():
