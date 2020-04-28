@@ -143,8 +143,6 @@ class AkBuild(AkSub):
                     # When odoo, we need to add 2 path
                     paths.append('%s/odoo/addons' % ODOO_FOLDER)
                     paths.append('%s/addons' % ODOO_FOLDER)
-                # Is it still really needed? why would we use relative path
-                # with C2C docker image? I think it should be removed
                 elif repo_path[0:2] == './':
                     relative_paths.append(repo_path)
                 else:
@@ -152,14 +150,11 @@ class AkBuild(AkSub):
                     # Update 2019/04 No it should not?
                     paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
 
-        # Construct absolute path, then relative path if any and merge both
-        # AFAIK the relative path logic should be removed.
-        # Because we do not use it and it add complexity
-        addons_path = '{}{}'.format(PREFIX, ',{}'.format(PREFIX).join(paths))
-        relative_path = ','.join(relative_paths)
-        whole_path = '{},{}'.format(addons_path, relative_path)
-        print('Addons path for your config file: ', whole_path)
-        return whole_path
+        addons_path = ','.join(paths + relative_paths)
+        # Construct absolute path, better for odoo config file.
+        abs_path = ",".join([PREFIX + repo_path for repo_path in paths])
+        print('Addons path for your config file: ', abs_path)
+        return addons_path
 
     def _ensure_viable_installation(self, config):
         if not local.path(config).is_file():
