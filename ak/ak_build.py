@@ -211,11 +211,9 @@ class AkBuild(AkSub):
                     # Update 2019/04 No it should not?
                     paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
 
-        addons_path = ','.join(paths + relative_paths)
         # Construct absolute path, better for odoo config file.
         abs_path = ",".join([PREFIX + repo_path for repo_path in paths])
         print('Addons path for your config file: ', abs_path)
-        return addons_path
 
     def _ensure_viable_installation(self, config):
         if not local.path(config).is_file():
