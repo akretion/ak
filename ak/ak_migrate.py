@@ -10,6 +10,8 @@ from .ak_build import SPEC_YAML, BUILDOUT_SRC
 
 logger = logging.getLogger(__name__)
 
+BUILDOUT_FROZEN = "frozen.cfg"
+
 
 @Ak.subcommand("migrate")
 class AkMigrate(AkSub):
@@ -31,6 +33,29 @@ class AkMigrate(AkSub):
             lines.sort()
             data = self._convert2dict(lines)
             self._write_yaml(data)
+        logger.info("%s generated" % SPEC_YAML)
+        if Path(BUILDOUT_FROZEN).is_file():
+            self._extract_info_from_frozen()
+            print(
+                "Here is data extracted from your %s file you can add it to"
+                "to your frozen.yaml" % BUILDOUT_FROZEN)
+
+    def _extract_info_from_frozen(self):
+        # Extract lines
+        motif = 'parts/'
+        with open(BUILDOUT_FROZEN, 'r') as f:
+            lines = [line.rstrip('\n')[line.find(motif) + 6:]
+                     for line in f
+                     if motif in line]
+        lines.sort()
+        # Display
+        params = {}
+        for line in lines:
+            members = line.split(" ")
+            params["repo"] = members[0]
+            params["commit"] = members[1]
+            print("%(repo)s:\n  origin:\n    any: %(commit)s" % params)
+        return lines
 
     def _extract_git_lines(self):
         with open(BUILDOUT_SRC, 'r') as f:

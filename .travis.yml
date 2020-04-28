@@ -1,0 +1,18 @@
+language: python
+sudo: true
+python:
+- 3.5
+- 3.6
+script:
+- echo "nothing"
+deploy:
+  provider: pypi
+  user: __token__
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+    python: 3.6
+  password:
+    secure: jUtxKGg/CR6ChdNpT4R69Lwvtf5Zj+3ac9W1AsDJH/QKi6zPrjmlE8/HUjhPUx/m2nTaaOUHw0F4WJQ19a4dBT0vBp73PZyLDFB9+lQbaXb48Fz9uYPv3MHmFHx21H/6DpWjpugw0rx8T83CPI39V1z5B32SGUKIYvzZlU3jptmaNqbHCPTuNzL0gjLNEd4XYb2ZeJUsfAQQkYCNJByZV8y2lJ5Et/pQKchAGFXN94u8FF17LNoj/nKYVYS31aBsYJyoSRPHvI+69iO4018M/mNt3MeRZa8CVHQhOB2HWkGu5SLiBfufdLIfmdcRJdI7hRIoNpl21pF+wjbGwmGpOtD3t6nh5qAPRSD01KKviT5fMa699eRFlDQyKfeThc1nQA5wrIq+qBjyr02VFjjqGoDBNStjY7JzbVKSC/NBBdHvDegdAYB0GxAAnvBxm0Qbih7KEW3jOdc5zbRrYLY2YG8LetEYefC7zIRGzMP7QicQHH/xT3wNPgTfgt0TC8FesiNlVag4FCyBTjQsdlAYvG2LQ+ujiDsqcr0S9sqgWKThAjOTdYBwuiGsSxu90JfhmdGpHXXFZaIBCCKaWsQkfWTncPR6OAK8MZma481wY52PtSFRFgApPRdvbCf33cbHeR7/NNCWsmFsGsNmIMS4+XdzljDYQ7UX4EycnNdRgl8=
+notifications:
+  email: false
