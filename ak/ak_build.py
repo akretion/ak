@@ -225,6 +225,8 @@ class AkBuild(AkSub):
         config_file = self.config
         self._ensure_viable_installation(config_file)
         self._generate_links(config_file)
+        force_directory = get_repo_key_from_spec(self.directory) 
+
         if self.linksonly:
             # Links have been updated then addons path must be updated
             self._print_addons_path(config_file)
@@ -234,17 +236,12 @@ class AkBuild(AkSub):
         config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
-            if self.directory:
-                # TODO externalise it in a function
-                if self.directory == 'odoo':
-                    path = ODOO_FOLDER
-                else:
-                    path = '%s/%s' % (VENDOR_FOLDER, self.directory)
-                args.append(['-d', './%s' % path])
-                if not local.path(path).exists():
+            if force_directory: 
+                if not local.path(force_directory).exists():
                     raise Exception(
-                        "\nSpecified file './%s' doesn't "
-                        "exists in your system" % path)
+                        "\nSpecified directory './%s' doesn't "
+                        "exists in your system" % force_directory)
+                args.append(['-d', force_directory])
             args.append(['-j', self.jobs])
             local['gitaggregate'][args] & FG
             # print addons_path should be called with spec.yml
