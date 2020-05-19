@@ -62,7 +62,7 @@ def get_repo_key_from_spec(key):
         repo_key = key
     else:
         # put sources in VENDOR_FOLDERS
-        repo_key = u'./%s/%s' % (VENDOR_FOLDER, key)
+        repo_key = './%s/%s' % (VENDOR_FOLDER, key)
     return repo_key
 
 
@@ -222,10 +222,12 @@ class AkBuild(AkSub):
         self._update_dir(local.path(LINK_FOLDER), clear_dir=True)
 
     def main(self, *args):
+        force_directory = False
         config_file = self.config
         self._ensure_viable_installation(config_file)
         self._generate_links(config_file)
-        force_directory = get_repo_key_from_spec(self.directory) 
+        if self.directory:
+            force_directory = get_repo_key_from_spec(self.directory)
 
         if self.linksonly:
             # Links have been updated then addons path must be updated
@@ -236,7 +238,7 @@ class AkBuild(AkSub):
         config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
-            if force_directory: 
+            if force_directory:
                 if not local.path(force_directory).exists():
                     raise Exception(
                         "\nSpecified directory './%s' doesn't "
