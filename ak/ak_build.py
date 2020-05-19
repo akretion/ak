@@ -225,7 +225,7 @@ class AkBuild(AkSub):
         config_file = self.config
         self._ensure_viable_installation(config_file)
         self._generate_links(config_file)
-        force_directory = get_repo_key_from_spec(self.directory) 
+        force_directory = self.directory and get_repo_key_from_spec(self.directory) 
 
         if self.linksonly:
             # Links have been updated then addons path must be updated
@@ -236,7 +236,7 @@ class AkBuild(AkSub):
         config_file = self.output
         if not self.fileonly:
             args = ['-c', config_file]
-            if force_directory: 
+            if force_directory:
                 if not local.path(force_directory).exists():
                     raise Exception(
                         "\nSpecified directory './%s' doesn't "
