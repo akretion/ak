@@ -17,8 +17,6 @@ from plumbum.commands.base import BaseCommand
 
 __version__ = '1.4.0'
 
-BUILDOUT_URL = ('https://raw.githubusercontent.com/buildout/'
-                'buildout/master/bootstrap/bootstrap.py')
 ERP_CFG = 'etc/openerp.cfg'
 BUILDOUT_FILE = "buildout.%s.cfg"
 WORKSPACE = '/workspace/'
@@ -160,10 +158,7 @@ class AkBuild(AkBuildFreeze):
         ["o"], help="Build with only local available source (merges, etc)")
 
     def download_and_install(self):
-        logging.info('Will download buildout from %s' % BUILDOUT_URL)
         wget = local['wget']
-        cmd = wget[BUILDOUT_URL]
-        cmd()
         python('bootstrap.py')
         os.remove('bootstrap.py')
 
