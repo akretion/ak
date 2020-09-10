@@ -12,18 +12,16 @@ from .ak_build import SPEC_YAML, get_repo_key_from_spec
 from .ak_sub import AkSub, Ak
 
 @Ak.subcommand("clone")
-class AkSparse(AkSub):
+class AkClone(AkSub):
     "git clone partial"
 
-    disable = cli.Flag(
-        '--disable', help="disable sparse-checkout", group="IO")
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
     directory = cli.SwitchAttr(
         ["d", "directory"], group="IO",
         help="Only work in specified directory")
     
-    def _generate_sparse_checkout(self, config):
+    def _generate_git_clone(self, config):
         "'Hide' modules, folder"
         spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         for key, repo in spec.items():
@@ -61,4 +59,4 @@ class AkSparse(AkSub):
     
     def main(self, *args):
         config_file = self.config
-        self._generate_sparse_checkout(config_file)
+        self._generate_git_clone(config_file)
