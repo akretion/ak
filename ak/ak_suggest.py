@@ -60,7 +60,8 @@ INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 [
                 continue
             modules = self._search_for_installable_modules_branch(key)
             # We substract modules in spec file
-            modules = [x for x in modules if x not in branch.get('modules')]
+            if "modules" in branch:
+                modules = [x for x in modules if x not in branch.get('modules')]
             # We substract useless modules in spec file
             if branch.get('useless'):
                 modules = [x for x in modules
