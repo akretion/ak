@@ -186,6 +186,8 @@ class AkBuild(AkSub):
 
             if key == 'odoo':
                 src = '%s/src/addons/%s' % (base, module)
+                if module == 'base':
+                    src = '%s/src/odoo/addons/%s' % (base, module)
             else:
                 src = '%s/%s/%s/%s' % (base, VENDOR_FOLDER, key, module)
             ln['-s', src, dest_path]()
@@ -225,7 +227,8 @@ class AkBuild(AkSub):
         config_file = self.config
         self._ensure_viable_installation(config_file)
         self._generate_links(config_file)
-        force_directory = self.directory and get_repo_key_from_spec(self.directory) 
+        force_directory = self.directory and get_repo_key_from_spec(
+            self.directory)
 
         if self.linksonly:
             # Links have been updated then addons path must be updated
