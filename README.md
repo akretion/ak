@@ -1,30 +1,32 @@
 ## Ak
 
+### What it is
 
-Installation:
+Ak is a command-line utility that is built on top of [gitaggregator](https://github.com/acsone/git-aggregator).
 
-We deeply recommand you to use pipx for installing python cli
+### Why use it
 
-Install with pipx
+#### ak build
 
-```
-pipx install -e --spec git+https://github.com/akretion/ak ak --force --include-deps
-```
+This is the main command. In your project, you want to organize all of your modules, repos and dependencies without 
+too many headaches.
+You can define all of your sources from a readable YAML file.
 
-If you don't want to use pipx, you can still use something like this: 
+#### other ak commands
 
-```
-python3 -m pip install git+https://github.com/akretion/ak --user
-```
+There are other useful commands (TODO)
 
-Install for dev purpose
-```
-git clone https://github.com/akretion/ak
-cd ak
-pipx install -e --spec . ak --force --include-deps
-```
+### How to use it
 
-Usage
+#### ak build, simple version 
+* Create a spec.yaml file according to the example (link). Refer to commented lines for
+  more explanation on the individual markup lines (TODO)
+* Run 'ak build'. The result will be:
+  - new ./external-src directory containing all the git repos of your sources with the appropriate branches and merges 
+  - new ./links directory containing links to the relevant modules across all repos ./external-src 
+* In your Odoo config file, you only need to specify in addons_path:
+  - Odoo Core sources
+  - The newly created ./links directory
 
 ```
 
@@ -58,3 +60,28 @@ Sub-commands:
                        INFO:ak.ak_suggest:   1 modules in branch https://github.com/oca/.../tree/12.0 ['base_...']  By
                        using `include` option, you may filter the output ; see 'ak suggest --help' for more info
 ```
+
+
+### Installation
+
+We strongly recommend using pipx for installing python cli
+
+Install with pipx
+
+```
+pipx install -e --spec git+https://github.com/akretion/ak ak --force --include-deps
+```
+
+If you don't want to use pipx, you can still use something like this: 
+
+```
+python3 -m pip install git+https://github.com/akretion/ak --user
+```
+
+Install for dev purpose
+```
+git clone https://github.com/akretion/ak
+cd ak
+pipx install -e --spec . ak --force --include-deps
+```
+
