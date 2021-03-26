@@ -8,10 +8,10 @@ We deeply recommand you to use pipx for installing python cli
 Install with pipx
 
 ```
-pipx install -e --spec git+https://github.com/akretion/ak ak --force --include-deps
+pipx install git+https://github.com/akretion/ak --force --include-deps
 ```
 
-If you don't want to use pipx, you can still use something like this: 
+If you don't want to use pipx, you can still use something like this:
 
 ```
 python3 -m pip install git+https://github.com/akretion/ak --user
