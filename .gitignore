@@ -1,1 +1,4 @@
 ak.egg-info
+.venv
+build
+dist
