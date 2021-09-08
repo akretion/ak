@@ -189,6 +189,11 @@ class AkBuild(AkSub):
             else:
                 src = '%s/%s/%s/%s' % (base, VENDOR_FOLDER, key, module)
             ln['-s', src, dest_path]()
+            if not local.path(dest_path / module).access():
+                logger.warning("Module %s/%s not found. Try `ak sparse`" %
+                    (key, module))
+
+
 
     def _print_addons_path(self, config):
         """Construct addon path based on spec.yaml
@@ -224,18 +229,14 @@ class AkBuild(AkSub):
     def main(self, *args):
         config_file = self.config
         self._ensure_viable_installation(config_file)
-        self._generate_links(config_file)
         force_directory = self.directory and get_repo_key_from_spec(self.directory) 
 
-        if self.linksonly:
-            # Links have been updated then addons path must be updated
-            self._print_addons_path(config_file)
-            return
-
-        self._generate_repo_yaml(config_file, self.frozen)
-        config_file = self.output
-        if not self.fileonly:
-            args = ['-c', config_file]
+        if not self.linksonly:
+            self._generate_repo_yaml(config_file, self.frozen)
+            aggregator_config_file = self.output
+            if self.fileonly:
+                return
+            args = ['-c', aggregator_config_file]
             if force_directory:
                 if not local.path(force_directory).exists():
                     raise Exception(
@@ -244,9 +245,11 @@ class AkBuild(AkSub):
                 args.append(['-d', force_directory])
             args.append(['-j', self.jobs])
             local['gitaggregate'][args] & FG
-            # print addons_path should be called with spec.yml
-            # in order to have the module key
-            self._print_addons_path(self.config)
+
+        self._generate_links(config_file)
+        # print addons_path should be called with spec.yml
+        # in order to have the module key
+        self._print_addons_path(self.config)
 
 
 @Ak.subcommand("freeze")

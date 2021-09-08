@@ -10,6 +10,7 @@ import yaml
 from .ak_build import SPEC_YAML, get_repo_key_from_spec
 
 from .ak_sub import AkSub, Ak
+logger = logging.getLogger(__name__)
 
 @Ak.subcommand("clone")
 class AkClone(AkSub):
@@ -42,7 +43,7 @@ class AkClone(AkSub):
             if 'src' in repo:
                 repo_url, branch, *err = repo['src'].split(' ')
                 if len(err) > 0:
-                    print('cant parse %s' % repo['src'])
+                    logger.warning("Can't parse %s" % repo['src'])
                     clone = False
                 else:
                      clone = True
@@ -50,10 +51,10 @@ class AkClone(AkSub):
                 clone = False
 
             if clone:
-                print('Will clone fast %s ' % repo_url)
+                logger.warning('Will clone fast %s in %s ' % (repo_url, key))
                 git['clone', '--filter=blob:none', '--no-checkout', repo_url, '-b', branch, '.']()
         if is_new and not clone:
-            print('will delete empty dir')
+            logger.warning('will delete empty dir %s' % key)
             local.path(repo_path).delete()
             
     
