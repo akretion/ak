@@ -37,6 +37,10 @@ class AkClone(AkSub):
             # init with no checkout
             local.path(repo_path).mkdir()
             is_new = True
+        elif not local.path(repo_path + '/.git').exists():
+            # we test .git existence because odoo folder
+            # may already exists but is empty
+            is_new = True
         with local.cwd(repo_path):
             if not is_new:
                 return
