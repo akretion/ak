@@ -2,5 +2,4 @@ plumbum >= 1.6.7
 git-aggregator >= 1.6.0
 kaptan >= 0.5.12
 PyYAML >= 5.1
-pathlib
 requests
