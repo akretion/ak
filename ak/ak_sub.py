@@ -1,17 +1,12 @@
-# coding: utf-8
 """AK."""
 import logging
 
 from plumbum import cli, local
 import os
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
+import configparser
 
 __version__ = "3.0.0"
 
-ERP_CFG = local.env.get('ERP_CFG_PATH', 'odoo.cfg')
 WORKSPACE = '.'
 
 
@@ -32,18 +27,6 @@ class Ak(cli.Application):
         this will replace the current process by the cmd"""
         logging.info([cmd, args])
         os.execvpe(cmd, [cmd] + args, local.env)
-
-    def read_erp_config_file(self):
-
-        if local.path(ERP_CFG).is_file():
-            config_path = ERP_CFG
-        elif local.path(WORKSPACE + ERP_CFG).is_file():
-            config_path = WORKSPACE + ERP_CFG
-        else:
-            raise Exception("Missing ERP config file %s" % ERP_CFG)
-        config = configparser.ConfigParser()
-        config.readfp(open(config_path))
-        return config
 
     @cli.switch("--verbose", help="Verbose mode")
     def set_log_level(self):
