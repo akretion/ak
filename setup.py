@@ -23,11 +23,11 @@ setup(
     author='Akretion',
     author_email='contact@akretion.com',
     url='https://github.com/akretion/ak',
-    description='simple cli for Odoo',
+    description='Simple cli for managing Odoo addons',
     license="AGPLv3+",
     long_description=open('README.md').read(),
     install_requires=[
-        r.strip() for r in open('requirement.txt').read().splitlines() ],
+        r.strip() for r in open('requirements.txt').read().splitlines() ],
     entry_points="""
     [console_scripts]
     ak=ak.main:main
