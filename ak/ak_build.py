@@ -18,7 +18,6 @@ VENDOR_FOLDER = 'external-src'
 LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
-BUILDOUT_SRC = './buildout.cfg'
 PREFIX = '/odoo/'
 JOBS = 2
 
