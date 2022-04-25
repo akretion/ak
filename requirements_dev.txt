@@ -1,2 +1,2 @@
--r requirement.txt
+-r requirements.txt
 pytest
