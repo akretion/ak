@@ -51,6 +51,14 @@ class AkClone(AkSub):
                     clone = False
                 else:
                      clone = True
+            elif "remotes" in repo and "merges" in repo:
+                repo_key, branch, *err = repo["merges"][0].split(" ")
+                if len(err) > 0 or repo_key not in repo["remotes"]:
+                    logger.warning("Can't parse %s" % repo['merges'][0])
+                    clone = False
+                else:
+                    repo_url = repo["remotes"][repo_key]
+                    clone = True
             else:
                 clone = False
 
