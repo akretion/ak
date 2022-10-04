@@ -6,7 +6,8 @@ from plumbum.commands.modifiers import FG
 from plumbum.commands.processes import ProcessExecutionError
 import os
 import yaml
-
+import re
+import requests
 
 from .ak_sub import AkSub, Ak
 
@@ -106,22 +107,28 @@ class AkBuild(AkSub):
             if frozen:
                 merges = repo.get('merges', [])
                 for index, merge in enumerate(merges):
-                    if isinstance(merge, dict):
+                    advanced_format = isinstance(merge, dict)
+                    if advanced_format:
                         ref = merge['ref']
                         remote = merge['remote']
-                        if is_sha1(ref):
-                            continue
-                        frozen_sha = frozen.get(remote, {}).get(ref)
-                        if frozen_sha:
-                            merge['ref'] = frozen_sha
-                    # simple format
                     else:
                         remote, ref = merge.split(' ')
-                        if is_sha1(ref):
-                            continue
-                        frozen_sha = frozen.get(remote, {}).get(ref)
-                        if frozen_sha:
-                            merges[index] = "%s %s" % (remote, frozen_sha)
+                    if is_sha1(ref):
+                        continue
+
+                    frozen_info = frozen.get(remote, {}).get(ref)
+                    if isinstance(frozen_info, dict):
+                        ref = frozen_info["sha"]
+                        remote = frozen_info["owner"]
+                        if remote not in repo["remotes"]:
+                            repo["remotes"][remote] = frozen_info["repo_url"]
+                    elif is_sha1(frozen_info):
+                        ref = frozen_info
+
+                    if advanced_format:
+                        merge.update({"ref": ref, "remote": remote})
+                    else:
+                        merges[index] = "%s %s" % (remote, ref)
             return repo
         else:
             src, branch, commit = parse_src(repo['src'])
@@ -229,7 +236,7 @@ class AkBuild(AkSub):
     def main(self, *args):
         config_file = self.config
         self._ensure_viable_installation(config_file)
-        force_directory = self.directory and get_repo_key_from_spec(self.directory) 
+        force_directory = self.directory and get_repo_key_from_spec(self.directory)
 
         if not self.linksonly:
             self._generate_repo_yaml(config_file, self.frozen)
@@ -261,13 +268,43 @@ class AkFreeze(AkSub):
     config = cli.SwitchAttr(
         ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
 
+    def _github_api_get(self, path):
+        url = 'https://api.github.com' + path
+        token = os.environ.get('GITHUB_TOKEN')
+        headers = None
+        if token:
+            headers = {'Authorization': 'token %s' % token}
+        response = requests.get(url, headers=headers)
+        return response.json()
+
+    def find_github_pr_info(self, directory, remote, ref):
+        remote = {
+            "ak": "akretion",
+            "c2c": "camptocamp",
+            }.get(remote, remote)
+        PULL_RE = re.compile('^(refs/)?pull/(?P<pr>[0-9]+)/head$')
+        pull_mo = PULL_RE.match(ref)
+        if not pull_mo:
+            raise Exception('%s is not a github pull request', ref)
+        path = f"/repos/{remote}/{directory}/pulls/{pull_mo.group('pr')}"
+        data = self._github_api_get(path)
+        return {
+            "owner": data["head"]["repo"]["owner"]["login"],
+            "branch": data["head"]["ref"],
+            "sha": data["head"]["sha"],
+            "repo_url": data["head"]["repo"]["html_url"],
+            }
+
     def find_branch_last_commit(self, directory, remote, branch):
         repo_path = get_repo_key_from_spec(directory)
         with local.cwd(repo_path):
             try:
                 # We do not freeze this kind of refs for now :
                 # refs/pull/780/head
-                sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
+                if branch.startswith("refs/pull"):
+                    sha = self.find_github_pr_info(directory, remote, branch)
+                else:
+                    sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
             except ProcessExecutionError:
                 sha = ''
         if not sha:
