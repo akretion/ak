@@ -265,9 +265,11 @@ class AkFreeze(AkSub):
         repo_path = get_repo_key_from_spec(directory)
         with local.cwd(repo_path):
             try:
-                # We do not freeze this kind of refs for now :
-                # refs/pull/780/head
-                sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
+                logger.info("get sha for {} {}".format(remote, branch))
+                if branch.startswith("refs/pull"):
+                    sha = git['ls-remote'][remote, branch]().split()[0]
+                else:
+                    sha = git['rev-parse']['{}/{}'.format(remote, branch)]().strip()
             except ProcessExecutionError:
                 sha = ''
         if not sha:
