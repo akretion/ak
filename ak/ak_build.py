@@ -145,7 +145,7 @@ class AkBuild(AkSub):
         config = yaml.safe_load(open(config).read())
         frozen_data = {}
         if local.path(frozen).is_file():
-            frozen_data = yaml.safe_load(open(frozen).read())
+            frozen_data = yaml.safe_load(open(frozen).read()) or {}
 
         for key in config:
             if config[key].get("prebuild"):
