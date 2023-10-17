@@ -325,7 +325,7 @@ class AkFreeze(AkSub):
             else:
                 for i, merge in enumerate(spec_data.get('merges')):
                     if isinstance(merge, dict):
-                        ref = merge.get('ref')
+                        ref = str(merge.get('ref'))
                         remote = merge.get('remote')
                     else:
                         remote, ref = merge.split(' ')
