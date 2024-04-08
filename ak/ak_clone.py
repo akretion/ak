@@ -4,13 +4,13 @@ from plumbum import cli, local
 from plumbum.cmd import (mkdir, find, ln, git)
 from plumbum.commands.modifiers import FG, TF
 from plumbum.commands.processes import ProcessExecutionError
-import os
 import yaml
 
 from .ak_build import SPEC_YAML, get_repo_key_from_spec
 
 from .ak_sub import AkSub, Ak
 logger = logging.getLogger(__name__)
+
 
 @Ak.subcommand("clone")
 class AkClone(AkSub):
@@ -21,9 +21,9 @@ class AkClone(AkSub):
     directory = cli.SwitchAttr(
         ["d", "directory"], group="IO",
         help="Only work in specified directory")
-    
+
     def _generate_git_clone(self, config):
-        "'Hide' modules, folder"
+        "Partial clone if possible"
         spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         for key, repo in spec.items():
             if self.directory and self.directory != key:
@@ -50,18 +50,21 @@ class AkClone(AkSub):
                     logger.warning("Can't parse %s" % repo['src'])
                     clone = False
                 else:
-                     clone = True
+                    clone = True
             else:
                 clone = False
 
             if clone:
                 logger.warning('Will clone fast %s in %s ' % (repo_url, key))
-                git['clone', '--filter=blob:none', '--no-checkout', repo_url, '-b', branch, '.']()
+                # was previously blob:none
+                # changed to tree:0 because it as very positive impact on odoo
+                # git['clone', '--filter=blob:none', '--no-checkout', repo_url, '-b', branch, '.']()
+                git['clone', '--filter=tree:0', '--no-checkout', repo_url, '-b', branch, '.']()
         if is_new and not clone:
-            logger.warning('will delete empty dir %s' % key)
-            local.path(repo_path).delete()
-            
-    
+            pass
+            # logger.warning('will delete empty dir %s' % key)
+            # local.path(repo_path).delete()
+
     def main(self, *args):
         config_file = self.config
         self._generate_git_clone(config_file)
