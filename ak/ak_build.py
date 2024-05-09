@@ -135,7 +135,7 @@ class AkBuild(AkSub):
             }
             depth = repo.get('depth')
             if depth:
-                repo_dict['defaults'] = {'depth': depth}
+                logger.warning('Depth is deprecated. Remove it from your spec.yml')
             if commit:
                 repo_dict['fetch_all'] = True
             return repo_dict
