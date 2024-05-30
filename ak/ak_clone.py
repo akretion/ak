@@ -61,8 +61,9 @@ class AkClone(AkSub):
                 # git['clone', '--filter=blob:none', '--no-checkout', repo_url, '-b', branch, '.']()
                 git['clone', '--filter=tree:0', '--no-checkout', repo_url, '-b', branch, '.']()
         if is_new and not clone:
-            logger.warning('will delete empty dir %s' % key)
-            local.path(repo_path).delete()
+            pass
+            # logger.warning('will delete empty dir %s' % key)
+            # local.path(repo_path).delete()
 
     def main(self, *args):
         config_file = self.config
