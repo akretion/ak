@@ -38,17 +38,12 @@ class AkSparse(AkSub):
 
     def _set_sparse_checkout(self, key, paths):
         repo_path = get_repo_key_from_spec(key)
-        is_new = False
-        if not local.path(repo_path).exists():
-            # init with no checkout
-            # allows to run this cmde before the git clones
-            # TODO: test with partial-clones
-            # when they will be available on github
-            local.path(repo_path).mkdir()
-            is_new = True
+        if not local.path(repo_path + "/.git").exists():
+            # directory do not exist
+            # or is not managed by git
+            # do nothing
+            return
         with local.cwd(repo_path):
-            if is_new:
-                git['init']()
             if key == 'odoo':
                 directories = [
                     dir.name for dir in local.path().list()
