@@ -53,7 +53,6 @@ class AkSparse(AkSub):
                 paths = ['addons/%s' % path for path in paths]
                 paths += directories
 
-            git['sparse-checkout', 'init', '--cone']()
             if self.disable:
                git['sparse-checkout', 'disable']()
             else:
