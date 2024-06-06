@@ -25,9 +25,10 @@ setup(
     url='https://github.com/akretion/ak',
     description='simple cli for Odoo',
     license="AGPLv3+",
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
+    long_description_content_type='text/x-rst',
     install_requires=[
-        r.strip() for r in open('requirement.txt').read().splitlines() ],
+        r.strip() for r in open('requirements.txt').read().splitlines() ],
     entry_points="""
     [console_scripts]
     ak=ak.main:main
