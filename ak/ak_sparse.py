@@ -1,15 +1,12 @@
 """AK."""
-import logging
 from plumbum import cli, local
-from plumbum.cmd import (mkdir, find, ln, git)
-from plumbum.commands.modifiers import FG, TF
-from plumbum.commands.processes import ProcessExecutionError
-import os
+from plumbum.cmd import (git)
 import yaml
 
 from .ak_build import SPEC_YAML, get_repo_key_from_spec
 
 from .ak_sub import AkSub, Ak
+
 
 @Ak.subcommand("sparse")
 class AkSparse(AkSub):
@@ -22,7 +19,7 @@ class AkSparse(AkSub):
     directory = cli.SwitchAttr(
         ["d", "directory"], group="IO",
         help="Only work in specified directory")
-    
+
     def _generate_sparse_checkout(self, config):
         "'Hide' modules, folder"
         # Do we still need the links when we are using sparse-checkout ?
@@ -47,17 +44,17 @@ class AkSparse(AkSub):
             if key == 'odoo':
                 directories = [
                     dir.name for dir in local.path().list()
-                    if dir.isdir() and dir.name[0] != '.' and dir.name != 'addons'
+                    if dir.is_dir() and dir.name[0] != '.' and dir.name != 'addons'
                     # remove files, hiddens (.git), addons
                 ]
                 paths = ['addons/%s' % path for path in paths]
                 paths += directories
 
             if self.disable:
-               git['sparse-checkout', 'disable']()
+                git['sparse-checkout', 'disable']()
             else:
-               git['sparse-checkout', "set", paths]()
-    
+                git['sparse-checkout', "set", paths]()
+
     def main(self, *args):
         config_file = self.config
         self._generate_sparse_checkout(config_file)
