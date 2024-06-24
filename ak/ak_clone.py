@@ -32,38 +32,46 @@ class AkClone(AkSub):
 
     def _partial_clone(self, key, repo):
         repo_path = get_repo_key_from_spec(key)
-        is_new = False
-        if not local.path(repo_path).exists():
-            # init with no checkout
-            local.path(repo_path).mkdir()
-            is_new = True
-        elif not local.path(repo_path + '/.git').exists():
+        if local.path(repo_path + '/.git').exists():
             # we test .git existence because odoo folder
             # may already exists but is empty
-            is_new = True
-        with local.cwd(repo_path):
-            if not is_new:
-                return
-            if 'src' in repo:
-                repo_url, branch, *err = repo['src'].split(' ')
-                if len(err) > 0:
-                    logger.warning("Can't parse %s" % repo['src'])
-                    clone = False
-                else:
-                    clone = True
-            else:
-                clone = False
 
-            if clone:
-                logger.warning('Will clone fast %s in %s ' % (repo_url, key))
+            # .git already defined; we quit
+            return
+
+        if 'src' in repo:
+            repo_url, branch, *err = repo['src'].split(' ')
+            if len(err) > 0:
+                logger.warning("Can't parse %s" % repo['src'])
+                clone_with_filter = False
+            else:
+                clone_with_filter = True
+        else:
+            clone_with_filter = False
+
+            # if modules: add --sparse
+
+        if clone_with_filter:
+            logger.warning('Will clone fast %s in %s ' % (repo_url, key))
+            if not local.path(repo_path).exists():
+                # ensure dir exists
+                local.path(repo_path).mkdir()
+
+            with local.cwd(repo_path):
                 # was previously blob:none
                 # changed to tree:0 because it as very positive impact on odoo
                 # git['clone', '--filter=blob:none', '--no-checkout', repo_url, '-b', branch, '.']()
                 git['clone', '--filter=tree:0', '--no-checkout', repo_url, '-b', branch, '.']()
-        if is_new and not clone:
-            pass
-            # logger.warning('will delete empty dir %s' % key)
-            # local.path(repo_path).delete()
+        else:
+            # long format are not supported
+            # but if a empty dir already exist
+            # we git init inside to not fail in a strange
+            # behavior of git-aggretator
+            # we want to preserve the dir because it may
+            # be a subvolume or a mounted directory
+            if local.path(repo_path).exists():
+                # clone without filter
+                git["init", "."]()
 
     def main(self, *args):
         config_file = self.config
