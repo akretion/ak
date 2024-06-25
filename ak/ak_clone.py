@@ -70,8 +70,9 @@ class AkClone(AkSub):
             # we want to preserve the dir because it may
             # be a subvolume or a mounted directory
             if local.path(repo_path).exists():
-                # clone without filter
-                git["init", "."]()
+                with local.cwd(repo_path):
+                    # clone without filter
+                    git["init", "."]()
 
     def main(self, *args):
         config_file = self.config
