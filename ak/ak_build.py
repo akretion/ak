@@ -74,7 +74,7 @@ def is_spec_simplified_format(yaml_data):
 
 @Ak.subcommand("build")
 class AkBuild(AkSub):
-    "Build dependencies for odoo"
+    "Build Odoo dependencies"
 
     fileonly = cli.Flag(
         '--fileonly', help="Just generate the %s" % REPO_YAML, group="IO")
@@ -94,7 +94,7 @@ class AkBuild(AkSub):
     jobs = cli.SwitchAttr(
         ['j', 'jobs'], int,
         default=JOBS,
-        help="Number of conccurents jobs")
+        help="Number of concurrent jobs")
 
     def _convert_repo(self, repo, frozen):
         if not is_spec_simplified_format(repo):
@@ -196,10 +196,10 @@ class AkBuild(AkSub):
 
 
     def _print_addons_path(self, config):
-        """Construct addon path based on spec.yaml
+        """Build the addons path from the spec.yaml file.
 
-        modules specified in spec.yaml are linked in "link"
-        repos without modules are added explicitely to the path"""
+        Modules specified in spec.yaml are linked in the "link"
+        repos without modules are added explicitely added to the path"""
         spec = yaml.load(open(config).read(), Loader=yaml.FullLoader)
         paths = [LINK_FOLDER, LOCAL_FOLDER]
         relative_paths = []
@@ -254,7 +254,7 @@ class AkBuild(AkSub):
 
 @Ak.subcommand("freeze")
 class AkFreeze(AkSub):
-    "Freeze dependencies for odoo in config file formated for git aggregator"
+    "Freeze Odoo dependencies in a config file formatted for git aggregator"
 
     output = cli.SwitchAttr(
         ["o", "output"], default=FROZEN_YAML, help="Output file", group="IO")
@@ -295,11 +295,11 @@ class AkFreeze(AkSub):
 
     def main(self, *args):
         """
-            Build Frozen.yaml file. Take spec.yaml file and for each
-            branch, if no commit is specified add the commit in the frozen file
-            If the branch already exists in frozen file, keep it and do not
+            Build the frozen.yaml file. Take spec.yaml file and for each
+            branch, if no commit is specified, add the commit in the frozen file
+            If the branch already exists in the frozen file, keep it and do not
             update it.
-            Note: the commit frezed is the last commit of the remote branch
+            Note: the frozen commit is the last commit of the remote branch
             based on existing fetch done by the build
         """
         if not os.path.isfile(self.config):
