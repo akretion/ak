@@ -1,4 +1,4 @@
 plumbum >= 1.6.7
 git-aggregator>=4.0.0
-PyYAML >= 5.1, < 5.4
+PyYAML
 requests
