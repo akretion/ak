@@ -101,8 +101,6 @@ class AkBuild(AkSub):
             repo.pop('modules', None)
             if not repo.get('target'):
                 repo['target'] = '%s merged' % list(repo['remotes'].keys())[0]
-            if not 'fetch_all' in repo:
-                repo['fetch_all'] = True
             if frozen:
                 merges = repo.get('merges', [])
                 for index, merge in enumerate(merges):
@@ -136,8 +134,6 @@ class AkBuild(AkSub):
             depth = repo.get('depth')
             if depth:
                 logger.warning('Depth is deprecated. Remove it from your spec.yml')
-            if commit:
-                repo_dict['fetch_all'] = True
             return repo_dict
 
     def _generate_repo_yaml(self, config, frozen):
