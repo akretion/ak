@@ -1,6 +1,7 @@
 """AK."""
+
 from plumbum import cli, local
-from plumbum.cmd import (git)
+from plumbum.cmd import git
 import yaml
 
 from .ak_build import SPEC_YAML, get_repo_key_from_spec
@@ -12,13 +13,13 @@ from .ak_sub import AkSub, Ak
 class AkSparse(AkSub):
     "git sparse-checkout with modules"
 
-    disable = cli.Flag(
-        '--disable', help="disable sparse-checkout", group="IO")
+    disable = cli.Flag("--disable", help="disable sparse-checkout", group="IO")
     config = cli.SwitchAttr(
-        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO")
+        ["c", "config"], default=SPEC_YAML, help="Config file", group="IO"
+    )
     directory = cli.SwitchAttr(
-        ["d", "directory"], group="IO",
-        help="Only work in specified directory")
+        ["d", "directory"], group="IO", help="Only work in specified directory"
+    )
 
     def _generate_sparse_checkout(self, config):
         "'Hide' modules, folder"
@@ -29,7 +30,7 @@ class AkSparse(AkSub):
         for key, repo in spec.items():
             if self.directory and self.directory != key:
                 continue
-            modules = repo.pop('modules', False)
+            modules = repo.pop("modules", False)
             if modules:
                 self._set_sparse_checkout(key, modules)
 
@@ -41,19 +42,23 @@ class AkSparse(AkSub):
             # do nothing
             return
         with local.cwd(repo_path):
-            if key == 'odoo':
-                directories = [
-                    dir.name for dir in local.path().list()
-                    if dir.is_dir() and dir.name[0] != '.' and dir.name != 'addons'
-                    # remove files, hiddens (.git), addons
-                ]
-                paths = ['addons/%s' % path for path in paths]
+            if key == "odoo":
+                cmd = (
+                    # may be we can write a better cone filter
+                    # we want everything appart /addons
+                    git["ls-tree"]["-d"]["--name-only"]["HEAD"]
+                )
+
+                # ls-files gives us all the files
+                directories = cmd().splitlines()
+                paths = ["addons/%s" % path for path in paths]
                 paths += directories
+                paths.remove("addons")  # remove ./addons/
 
             if self.disable:
-                git['sparse-checkout', 'disable']()
+                git["sparse-checkout", "disable"]()
             else:
-                git['sparse-checkout', "set", paths]()
+                git["sparse-checkout", "set", paths]()
 
     def main(self, *args):
         config_file = self.config
