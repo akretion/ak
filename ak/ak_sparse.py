@@ -49,7 +49,7 @@ class AkSparse(AkSub):
                     git["ls-tree"]["-d"]["--name-only"]["HEAD"]
                 )
 
-                # ls-files gives us all the files
+                # ls-tree gives us all the files
                 directories = cmd().splitlines()
                 paths = ["addons/%s" % path for path in paths]
                 paths += directories
