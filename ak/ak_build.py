@@ -133,6 +133,8 @@ class AkBuild(AkSub):
             depth = repo.get('depth')
             if depth:
                 logger.warning('Depth is deprecated. Remove it from your spec.yml')
+            if repo.get('shell_command_after'):
+                repo_dict['shell_command_after'] = repo['shell_command_after']
             return repo_dict
 
     def _generate_repo_yaml(self, config, frozen):
