@@ -104,7 +104,7 @@ class AkBuild(AkSub):
                 merges = repo.get('merges', [])
                 for index, merge in enumerate(merges):
                     if isinstance(merge, dict):
-                        ref = merge['ref']
+                        ref = str(merge['ref'])
                         remote = merge['remote']
                         if is_sha1(ref):
                             continue
