@@ -1,0 +1,35 @@
+[build-system]
+requires = [
+    "hatchling>=1.6.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "ak"
+description = "simple cli for Odoo"
+readme = "README.md"
+license = "AGPLv3+"
+authors = [
+    { name = "Akretion", email = "contact@akretion.com" },
+]
+dependencies = [
+    "git-aggregator >= 1.6.0",
+    "kaptan >= 0.5.12",
+    "plumbum >= 1.6.7",
+    "PyYAML >= 5.1",
+    "requests",
+]
+dynamic = [
+    "version",
+]
+
+[project.urls]
+Homepage = "https://github.com/akretion/ak"
+
+[tool.hatch.version]
+path = "ak/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/ak",
+]
