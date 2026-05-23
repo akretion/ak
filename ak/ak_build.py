@@ -18,7 +18,7 @@ VENDOR_FOLDER = 'external-src'
 LOCAL_FOLDER = 'local-src'
 LINK_FOLDER = 'links'
 ODOO_FOLDER = 'src'
-PREFIX = '/odoo/'
+DEFAULT_PREFIX = '/odoo/'
 JOBS = 2
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,24 @@ class AkBuild(AkSub):
         ['j', 'jobs'], int,
         default=JOBS,
         help="Number of concurrent jobs")
+    odoo_root = cli.SwitchAttr(
+        ['--odoo-root'],
+        default=None,
+        help="Prefix for the addons path output. "
+             "Defaults to the AK_ODOO_ROOT environment variable "
+             "or '/odoo/' if not set.")
+
+    def _get_prefix(self):
+        """Return the Odoo root prefix.
+
+        Priority:
+        1. --odoo-root CLI option
+        2. AK_ODOO_ROOT environment variable
+        3. DEFAULT_PREFIX ('/odoo/')
+        """
+        if self.odoo_root is not None:
+            return self.odoo_root
+        return os.environ.get('AK_ODOO_ROOT', DEFAULT_PREFIX)
 
     def _convert_repo(self, repo, frozen):
         if not is_spec_simplified_format(repo):
@@ -214,7 +232,8 @@ class AkBuild(AkSub):
                     paths.append('%s/%s' % (VENDOR_FOLDER, repo_path))
 
         # Construct absolute path, better for odoo config file.
-        abs_path = ",".join([PREFIX + repo_path for repo_path in paths])
+        prefix = self._get_prefix()
+        abs_path = ",".join([prefix + repo_path for repo_path in paths])
         print('Addons path for your config file: ', abs_path)
 
     def _ensure_viable_installation(self, config):
